@@ -80,6 +80,11 @@
             transform: scale(1.05);
         }
         
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
         .loading {
             text-align: center;
             padding: 30px;
@@ -113,6 +118,14 @@
         
         .result.show {
             display: block;
+        }
+        
+        .error-message {
+            background: rgba(239, 68, 68, 0.2);
+            border-left: 5px solid #ef4444;
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
         }
         
         @keyframes fadeIn {
@@ -174,9 +187,10 @@
         }
         
         .info-value {
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             font-weight: bold;
             color: #667eea;
+            word-break: break-all;
         }
         
         .reasons-list {
@@ -219,8 +233,8 @@
         
         <div class="card">
             <div class="input-group">
-                <input type="text" id="walletInput" placeholder="Enter wallet address (0x...)" />
-                <button onclick="checkWallet()">🔍 Check Wallet</button>
+                <input type="text" id="walletInput" placeholder="Enter wallet address (0x...)" value="0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb5" />
+                <button onclick="checkWallet()" id="checkBtn">🔍 Check Wallet</button>
             </div>
             
             <div class="loading" id="loading">
@@ -235,14 +249,21 @@
 
     <script>
         async function checkWallet() {
-            const wallet = document.getElementById('walletInput').value;
+            const wallet = document.getElementById('walletInput').value.trim();
+            const checkBtn = document.getElementById('checkBtn');
             
             if (!wallet) {
                 alert('Please enter a wallet address! Example: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb5');
                 return;
             }
             
-            // Show loading animation
+            if (!wallet.startsWith('0x') || wallet.length !== 42) {
+                alert('Invalid wallet address format! Must start with 0x and be 42 characters long.');
+                return;
+            }
+            
+            // Show loading animation, disable button
+            checkBtn.disabled = true;
             document.getElementById('loading').classList.add('show');
             document.getElementById('result').classList.remove('show');
             
@@ -256,12 +277,34 @@
                 });
                 
                 const data = await response.json();
-                displayResult(data);
+                
+                if (data.error) {
+                    displayError(data.error);
+                } else {
+                    displayResult(data);
+                }
             } catch (error) {
-                alert('❌ Error: Make sure the server is running!\n\nRun: python app.py');
+                console.error('Error:', error);
+                displayError('Network error: Could not connect to server. Make sure the Flask server is running on port 5000');
             } finally {
                 document.getElementById('loading').classList.remove('show');
+                checkBtn.disabled = false;
             }
+        }
+        
+        function displayError(errorMsg) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                <div class="error-message">
+                    <strong>❌ Error:</strong><br>
+                    ${errorMsg}<br><br>
+                    <small>💡 Tips:<br>
+                    - Make sure you've set your Etherscan API key<br>
+                    - Check that the wallet address is correct<br>
+                    - Try again in a few seconds</small>
+                </div>
+            `;
+            resultDiv.classList.add('show');
         }
         
         function displayResult(data) {
@@ -284,8 +327,10 @@
             // Show warning if using demo data
             let warningNote = '';
             if (!data.is_real_data) {
-                warningNote = '<div class="warning-note">⚠️ Using demo data (API key not configured). Get free API key from etherscan.io!</div>';
+                warningNote = '<div class="warning-note">⚠️ Using demo data (API key not configured or invalid). Get free API key from etherscan.io!</div>';
             }
+            
+            const reasonsList = data.reasons.map(reason => `<li>${reason}</li>`).join('');
             
             resultDiv.innerHTML = `
                 <div class="risk-card ${riskClass}">
@@ -295,7 +340,7 @@
                     <div class="info-grid">
                         <div class="info-item">
                             <div class="info-label">💰 Wallet Address</div>
-                            <div class="info-value" style="font-size: 0.9rem;">${data.wallet.substring(0, 15)}...</div>
+                            <div class="info-value" style="font-size: 0.9rem;">${data.wallet.substring(0, 10)}...${data.wallet.substring(data.wallet.length - 8)}</div>
                         </div>
                         <div class="info-item">
                             <div class="info-label">📊 Transactions Found</div>
@@ -303,18 +348,18 @@
                         </div>
                         <div class="info-item">
                             <div class="info-label">💵 Total Volume</div>
-                            <div class="info-value">${data.total_volume || '$0'}</div>
+                            <div class="info-value">${data.total_volume || '0 ETH'}</div>
                         </div>
                         <div class="info-item">
                             <div class="info-label">⏰ Last Active (days ago)</div>
-                            <div class="info-value">${data.last_active === 999 ? 'Never' : data.last_active + ' days'}</div>
+                            <div class="info-value">${data.last_active === 999 ? 'Never / Unknown' : data.last_active + ' days'}</div>
                         </div>
                     </div>
                     
                     <div style="margin-top: 20px;">
                         <strong>⚠️ Suspicious Patterns Found:</strong>
                         <ul class="reasons-list">
-                            ${data.reasons.map(reason => `<li>${reason}</li>`).join('')}
+                            ${reasonsList}
                         </ul>
                     </div>
                     
@@ -339,6 +384,13 @@
                 return "🟢 This wallet appears normal, but always practice safe crypto habits: double-check addresses, start with small test transactions, and use hardware wallets for large amounts.";
             }
         }
+        
+        // Optional: Enter key to submit
+        document.getElementById('walletInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkWallet();
+            }
+        });
     </script>
 </body>
 </html>
