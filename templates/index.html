@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptoShield - Real Crypto Fraud Detector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        input {
+            flex: 1;
+            padding: 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            background: white;
+            font-family: monospace;
+        }
+        
+        button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 30px;
+            display: none;
+            color: white;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .result {
+            margin-top: 30px;
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        
+        .result.show {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .risk-card {
+            padding: 25px;
+            border-radius: 15px;
+            background: rgba(0,0,0,0.5);
+        }
+        
+        .risk-high {
+            border-left: 5px solid #ef4444;
+            background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(0,0,0,0.5));
+        }
+        
+        .risk-medium {
+            border-left: 5px solid #f59e0b;
+            background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(0,0,0,0.5));
+        }
+        
+        .risk-low {
+            border-left: 5px solid #22c55e;
+            background: linear-gradient(135deg, rgba(34,197,94,0.2), rgba(0,0,0,0.5));
+        }
+        
+        .risk-level {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .risk-score {
+            font-size: 3rem;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .info-item {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .info-label {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .reasons-list {
+            list-style: none;
+            margin-top: 20px;
+        }
+        
+        .reasons-list li {
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            color: white;
+        }
+        
+        .warning-note {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            color: #f59e0b;
+            text-align: center;
+        }
+        
+        @media (max-width: 600px) {
+            .header h1 { font-size: 1.8rem; }
+            .card { padding: 20px; }
+            .input-group { flex-direction: column; }
+            .risk-level { font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ CryptoShield AI</h1>
+            <p>Real Blockchain Fraud Detection • Live Data from Etherscan</p>
+        </div>
+        
+        <div class="card">
+            <div class="input-group">
+                <input type="text" id="walletInput" placeholder="Enter wallet address (0x...)" />
+                <button onclick="checkWallet()">🔍 Check Wallet</button>
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>📡 Connecting to blockchain...</p>
+                <p style="font-size: 0.85rem;">Fetching real transaction data from Etherscan</p>
+            </div>
+            
+            <div class="result" id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        async function checkWallet() {
+            const wallet = document.getElementById('walletInput').value;
+            
+            if (!wallet) {
+                alert('Please enter a wallet address! Example: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb5');
+                return;
+            }
+            
+            // Show loading animation
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('result').classList.remove('show');
+            
+            try {
+                const response = await fetch('/check_wallet', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ wallet: wallet })
+                });
+                
+                const data = await response.json();
+                displayResult(data);
+            } catch (error) {
+                alert('❌ Error: Make sure the server is running!\n\nRun: python app.py');
+            } finally {
+                document.getElementById('loading').classList.remove('show');
+            }
+        }
+        
+        function displayResult(data) {
+            const resultDiv = document.getElementById('result');
+            
+            // Get risk class for styling
+            let riskClass = '';
+            let riskIcon = '';
+            if (data.risk_level.includes('HIGH')) {
+                riskClass = 'risk-high';
+                riskIcon = '🔴';
+            } else if (data.risk_level.includes('MEDIUM')) {
+                riskClass = 'risk-medium';
+                riskIcon = '🟠';
+            } else {
+                riskClass = 'risk-low';
+                riskIcon = '🟢';
+            }
+            
+            // Show warning if using demo data
+            let warningNote = '';
+            if (!data.is_real_data) {
+                warningNote = '<div class="warning-note">⚠️ Using demo data (API key not configured). Get free API key from etherscan.io!</div>';
+            }
+            
+            resultDiv.innerHTML = `
+                <div class="risk-card ${riskClass}">
+                    <div class="risk-level">${riskIcon} ${data.risk_level}</div>
+                    <div class="risk-score">Risk Score: ${data.risk_score}/100</div>
+                    
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">💰 Wallet Address</div>
+                            <div class="info-value" style="font-size: 0.9rem;">${data.wallet.substring(0, 15)}...</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">📊 Transactions Found</div>
+                            <div class="info-value">${data.transactions_found}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">💵 Total Volume</div>
+                            <div class="info-value">${data.total_volume || '$0'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">⏰ Last Active (days ago)</div>
+                            <div class="info-value">${data.last_active === 999 ? 'Never' : data.last_active + ' days'}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <strong>⚠️ Suspicious Patterns Found:</strong>
+                        <ul class="reasons-list">
+                            ${data.reasons.map(reason => `<li>${reason}</li>`).join('')}
+                        </ul>
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px;">
+                        <strong>💡 What this means:</strong><br>
+                        ${getAdvice(data.risk_level)}
+                    </div>
+                    
+                    ${warningNote}
+                </div>
+            `;
+            
+            resultDiv.classList.add('show');
+        }
+        
+        function getAdvice(riskLevel) {
+            if (riskLevel.includes('HIGH')) {
+                return "🔴 DO NOT interact with this wallet! Report it to blockchain security services. This wallet shows clear signs of fraudulent activity.";
+            } else if (riskLevel.includes('MEDIUM')) {
+                return "🟠 Exercise extreme caution. Verify all information independently before sending any funds. Consider using escrow services.";
+            } else {
+                return "🟢 This wallet appears normal, but always practice safe crypto habits: double-check addresses, start with small test transactions, and use hardware wallets for large amounts.";
+            }
+        }
+    </script>
+</body>
+</html>
