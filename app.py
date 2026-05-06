@@ -17,7 +17,7 @@ def get_real_wallet_data(wallet_address):
     """
     
     # Get API key from environment variable (SAFE WAY)
-    YOUR_API_KEY = os.environ.get('ETHERSCAN_API_KEY', 'HP8R6M6HSP6BPPCAUIYFMXUSG3GIC3FXKH')
+    YOUR_API_KEY = os.environ.get('ETHERSCAN_API_KEY', '')
     
     # If no API key, show error
     if not YOUR_API_KEY:
