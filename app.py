@@ -1,4 +1,10 @@
 import os
+import sys
+
+# Fix Unicode emoji output on Windows
+sys.stdout.reconfigure(encoding='utf-8')
+sys.stderr.reconfigure(encoding='utf-8')
+
 from flask import Flask, render_template, request, jsonify
 import requests
 import time
@@ -23,7 +29,7 @@ def test_api_key(api_key):
         return False, "No API key provided"
     
     test_wallet = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb5"
-    url = f"https://api.etherscan.io/api?module=account&action=balance&address={test_wallet}&tag=latest&apikey={api_key}"
+    url = f"https://api.etherscan.io/v2/api?chainid=1&module=account&action=balance&address={test_wallet}&tag=latest&apikey={api_key}"
     try:
         response = requests.get(url, timeout=10)
         data = response.json()
@@ -68,7 +74,7 @@ def get_real_wallet_data(wallet_address):
         }
     
     # Fetch transactions
-    url = f"https://api.etherscan.io/api?module=account&action=txlist&address={wallet_address}&startblock=0&endblock=99999999&sort=desc&apikey={YOUR_API_KEY}"
+    url = f"https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address={wallet_address}&startblock=0&endblock=99999999&sort=desc&apikey={YOUR_API_KEY}"
     
     try:
         print(f"📡 Fetching data for wallet: {wallet_address}")
