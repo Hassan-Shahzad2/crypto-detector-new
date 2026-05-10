@@ -1,16 +1,21 @@
 import os
 from flask import Flask, render_template, request, jsonify
-from flask_cors import CORS
 import requests
 import time
 from dotenv import load_dotenv
-from datetime import datetime
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+
+# Add CORS headers manually (instead of flask_cors)
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+    response.headers.add('Access-Control-Allow-Methods', 'GET, POST')
+    return response
 
 def test_api_key(api_key):
     """Test if API key is valid"""
@@ -271,7 +276,7 @@ def detect_fraud(wallet_data):
     
     # 4. New wallet with no history
     if wallet_data['total_tx'] == 0:
-        risk_score += 20
+        risk_score += 25
         reasons.append("🆕 Brand new wallet - No transaction history (could be a scam wallet)")
     elif wallet_data['total_tx'] < 5:
         risk_score += 10
