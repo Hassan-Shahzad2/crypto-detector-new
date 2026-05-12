@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-<title>CryptoShield AI — Blockchain Fraud Intelligence</title>
+<title>CryptoShield AI — Blockchain Fraud Intelligence (ETH + BTC)</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -699,7 +699,7 @@ footer strong { color: var(--sub); font-weight: 600; }
     </div>
     <h1>Detect Crypto<br><em>Fraud Instantly</em></h1>
     <p class="hero-desc">
-      AI-powered Ethereum wallet analysis using live Etherscan data.
+      AI-powered Ethereum &amp; Bitcoin wallet analysis using live blockchain data.
       Identify dusting attacks, suspicious patterns, and high-risk
       wallets in seconds — completely free.
     </p>
@@ -707,7 +707,7 @@ footer strong { color: var(--sub); font-weight: 600; }
     <div class="hero-stats">
       <div><div class="hstat-val">99.2%</div><div class="hstat-label">Detection rate</div></div>
       <div><div class="hstat-val">&lt;3s</div><div class="hstat-label">Scan time</div></div>
-      <div><div class="hstat-val">ETH</div><div class="hstat-label">Network</div></div>
+      <div><div class="hstat-val">ETH/BTC</div><div class="hstat-label">Networks</div></div>
       <div><div class="hstat-val">Free</div><div class="hstat-label">Always</div></div>
     </div>
   </div>
@@ -726,21 +726,22 @@ footer strong { color: var(--sub); font-weight: 600; }
 <!-- SCANNER -->
 <section class="section" id="scanner">
   <div class="sec-tag">Wallet Analysis</div>
-  <h2 class="sec-h">Scan Any ETH Wallet</h2>
-  <p class="sec-p">Enter an Ethereum address for a full fraud risk assessment with visual analytics and AI interpretation.</p>
+  <h2 class="sec-h">Scan ETH or BTC Wallets</h2>
+  <p class="sec-p">Enter an Ethereum or Bitcoin address for a full fraud risk assessment with visual analytics and AI interpretation.</p>
 
   <div class="scan-card">
     <div class="input-row">
       <input class="addr-inp" id="walletInput"
-        placeholder="0x... Enter Ethereum wallet address"
+        placeholder="0x... (ETH) or bc1... / 1... / 3... (BTC)"
         autocomplete="off" spellcheck="false" />
       <button class="scan-btn" id="scanBtn" onclick="checkWallet()">⚡ Analyze</button>
     </div>
     <div class="quick-row">
       <span class="qlabel">Try:</span>
-      <button class="qbtn" onclick="setAddr('0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb5')">Sample Wallet</button>
+      <button class="qbtn" onclick="setAddr('0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb5')">Sample ETH</button>
+      <button class="qbtn" onclick="setAddr('bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq')">Sample BTC (bc1)</button>
+      <button class="qbtn" onclick="setAddr('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa')">Satoshi's BTC</button>
       <button class="qbtn" onclick="setAddr('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045')">Vitalik.eth</button>
-      <button class="qbtn" onclick="setAddr('0x00000000219ab540356cBB839Cbe05303d7705Fa')">ETH2 Deposit</button>
     </div>
 
     <!-- Loading -->
@@ -748,7 +749,7 @@ footer strong { color: var(--sub); font-weight: 600; }
       <div class="spin"></div>
       <div class="load-title">Scanning blockchain...</div>
       <div class="load-steps">
-        <div class="lstep">▶ Connecting to Etherscan API</div>
+        <div class="lstep">▶ Connecting to blockchain API</div>
         <div class="lstep">▶ Fetching transaction history</div>
         <div class="lstep">▶ Running fraud detection algorithms</div>
       </div>
@@ -756,7 +757,7 @@ footer strong { color: var(--sub); font-weight: 600; }
 
     <!-- Error -->
     <div class="err-box" id="errBox">
-      <div class="err-title">Analysis Failed</div>
+      <div class="err-title">⚠️ Analysis Failed</div>
       <div class="err-body" id="errText"></div>
     </div>
 
@@ -836,7 +837,7 @@ footer strong { color: var(--sub); font-weight: 600; }
         <div>
           <div class="bubble">
             Hello! I'm ShieldAI, your blockchain security expert powered by
-            Groq's ultra-fast Llama 3 AI. I can help you understand crypto
+            Groq's ultra-fast Llama 3 AI. I can help you understand Ethereum &amp; Bitcoin
             fraud patterns, explain wallet risks, and answer any blockchain
             security questions.<br><br>
             Try scanning a wallet above, then ask me to explain the results! 🛡️<br><br>
@@ -866,7 +867,7 @@ footer strong { color: var(--sub); font-weight: 600; }
 <!-- FOOTER -->
 <footer id="about">
   <strong>🛡️ CryptoShield AI</strong><br>
-  Advanced blockchain fraud detection · Etherscan API · Groq Llama 3 AI<br>
+  Advanced blockchain fraud detection · Etherscan API (ETH) · Blockstream API (BTC) · Groq Llama 3 AI<br>
   Built with ❤️ by <strong>Hassan</strong> · For educational purposes only<br>
   Always do your own research before any transaction.
 </footer>
@@ -887,7 +888,6 @@ function closeMenu() {
   btn.classList.remove('active');
 }
 
-// Close menu when clicking a link (already handled with onclick)
 // ── STATE
 let lastScan  = null;
 let txChart   = null;
@@ -895,16 +895,16 @@ let riskChart = null;
 
 // ── TICKER DATA
 const ticks = [
-  { a: '0x742d...0bEb5', r: 'low',  s: 18 },
-  { a: '0xdead...0000',  r: 'high', s: 82 },
-  { a: '0x1234...abcd',  r: 'med',  s: 55 },
-  { a: '0xvita...6045',  r: 'low',  s: 12 },
-  { a: '0xf00d...beef',  r: 'high', s: 91 },
+  { a: '0x742d...0bEb5', r: 'low',  s: 18, net: 'ETH' },
+  { a: 'bc1qar...5mdq',  r: 'low',  s: 12, net: 'BTC' },
+  { a: '1A1zP...fNa',    r: 'low',  s: 8,  net: 'BTC' },
+  { a: '0xdead...0000',  r: 'high', s: 82, net: 'ETH' },
+  { a: 'bc1xyz...abc',   r: 'med',  s: 55, net: 'BTC' },
 ];
 function buildTicker() {
   document.getElementById('tickerBody').innerHTML = ticks.map(t => `
     <div class="tick-row">
-      <span class="tick-addr">${t.a}</span>
+      <span class="tick-addr">${t.net} ${t.a}</span>
       <span class="tbadge tb-${t.r}">${t.r.toUpperCase()} · ${t.s}</span>
     </div>`).join('');
 }
@@ -915,16 +915,20 @@ const $  = id => document.getElementById(id);
 const on  = id => $(id).classList.add('on');
 const off = id => $(id).classList.remove('on');
 
-function setAddr(a) { $('walletInput').value = a; $('walletInput').focus(); }
+function setAddr(a) { 
+  $('walletInput').value = a; 
+  $('walletInput').focus(); 
+}
 
 // ── SCAN
 async function checkWallet() {
   const wallet = $('walletInput').value.trim();
-  if (!wallet) { alert('Please enter a wallet address'); return; }
-  if (!wallet.startsWith('0x') || wallet.length !== 42) {
-    alert('Invalid format — must start with 0x and be exactly 42 characters'); return;
+  if (!wallet) { 
+    showErr('Please enter a wallet address'); 
+    return; 
   }
-
+  
+  // Let the backend validate - just check if it's not empty
   $('scanBtn').disabled = true;
   $('results').classList.remove('on');
   $('errBox').classList.remove('on');
@@ -938,108 +942,153 @@ async function checkWallet() {
     });
     const data = await res.json();
     off('loadWrap');
-    if (data.error) showErr(data.error);
-    else { lastScan = data; renderResults(data); }
+    if (data.error) {
+      showErr(data.error);
+    } else { 
+      lastScan = data; 
+      renderResults(data); 
+    }
   } catch (e) {
     off('loadWrap');
-    showErr('Network error — make sure the server is running.');
+    showErr('Network error — make sure the server is running. Error: ' + e.message);
   }
   $('scanBtn').disabled = false;
 }
 
 function showErr(msg) {
   $('errText').innerHTML = msg +
-    '<br><br><small style="color:var(--muted)">Check your API key and wallet address, then try again.</small>';
+    '<br><br><small style="color:var(--muted)">💡 Tip: Make sure you entered a valid Ethereum (0x...) or Bitcoin (1..., 3..., bc1...) address.</small>';
   on('errBox');
+}
+
+function getAdvice(rl, network = 'ethereum') {
+  if (rl.includes('HIGH')) {
+    if (network === 'bitcoin') {
+      return '⚠️ DO NOT interact with this Bitcoin wallet. Strong indicators of fraudulent activity detected. Report this address to blockchain security platforms immediately.';
+    }
+    return '⚠️ DO NOT interact with this wallet. Strong indicators of fraudulent activity detected. Report this address to blockchain security platforms immediately.';
+  }
+  if (rl.includes('MEDIUM')) {
+    return '⚠️ Exercise high caution. Verify all information independently before any transactions. Consider using escrow services for additional protection.';
+  }
+  if (rl.includes('LOW') && !rl.includes('VERY')) {
+    return 'ℹ️ Exercise normal caution. No major red flags found, but always verify addresses and start with small test transactions.';
+  }
+  return '✅ This wallet shows normal activity patterns. Always practice good security — use hardware wallets for large amounts and enable 2FA on all exchanges.';
 }
 
 function renderResults(data) {
   // Determine risk class
   let cls = 'safe', col = '#10b981';
-  if (data.risk_level.includes('HIGH'))                           { cls = 'high';   col = '#ef4444'; }
-  else if (data.risk_level.includes('MEDIUM'))                    { cls = 'medium'; col = '#f59e0b'; }
-  else if (data.risk_level.includes('LOW') && !data.risk_level.includes('VERY')) { cls = 'low'; col = '#eab308'; }
+  if (data.risk_level && data.risk_level.includes('HIGH')) { cls = 'high'; col = '#ef4444'; }
+  else if (data.risk_level && data.risk_level.includes('MEDIUM')) { cls = 'medium'; col = '#f59e0b'; }
+  else if (data.risk_level && data.risk_level.includes('LOW') && !data.risk_level.includes('VERY')) { cls = 'low'; col = '#eab308'; }
 
+  // Network badge
+  const networkIcon = data.network === 'bitcoin' ? '₿' : 'Ξ';
+  const networkName = data.network === 'bitcoin' ? 'Bitcoin' : 'Ethereum';
+  
   // Banner
   $('riskBanner').className = `risk-banner rb-${cls}`;
-  $('riskLevel').textContent = data.risk_level;
-  $('riskAddr').textContent  = data.wallet.slice(0, 14) + '...' + data.wallet.slice(-8);
-
+  $('riskLevel').textContent = data.risk_level || 'UNKNOWN';
+  const shortAddr = data.wallet.length > 20 ? data.wallet.slice(0, 14) + '...' + data.wallet.slice(-8) : data.wallet;
+  $('riskAddr').textContent = `${networkIcon} ${networkName}: ${shortAddr}`;
+  
   // Gauge
-  const score = data.risk_score;
+  const score = data.risk_score || 0;
   $('gNum').textContent = score;
   $('gFill').style.stroke = col;
   setTimeout(() => { $('gFill').style.strokeDashoffset = 289 - (289 * score / 100); }, 80);
 
-  // Stats
-  $('statsGrid').innerHTML = `
-    <div class="stat-box"><div class="stat-ico">📊</div><div class="stat-lbl">Transactions</div><div class="stat-val">${data.transactions_found.toLocaleString()}</div></div>
-    <div class="stat-box"><div class="stat-ico">💰</div><div class="stat-lbl">Total Volume</div><div class="stat-val">${data.total_volume}</div></div>
-    <div class="stat-box"><div class="stat-ico">⏰</div><div class="stat-lbl">Last Active</div><div class="stat-val">${data.last_active}</div></div>
-    <div class="stat-box"><div class="stat-ico">⚠️</div><div class="stat-lbl">Micro-Txs</div><div class="stat-val">${data.small_tx_count}</div></div>`;
+  // Stats - WITH DUST TXS COUNTER ADDED
+  let statsHTML = `
+    <div class="stat-box"><div class="stat-ico">🌐</div><div class="stat-lbl">Network</div><div class="stat-val">${networkIcon} ${networkName}</div></div>
+    <div class="stat-box"><div class="stat-ico">📊</div><div class="stat-lbl">Transactions</div><div class="stat-val">${(data.transactions_found || 0).toLocaleString()}</div></div>
+    <div class="stat-box"><div class="stat-ico">💰</div><div class="stat-lbl">Volume</div><div class="stat-val">${data.total_volume || '0'}</div></div>
+  `;
+  
+  if (data.balance) {
+    statsHTML += `<div class="stat-box"><div class="stat-ico">💎</div><div class="stat-lbl">Balance</div><div class="stat-val">${data.balance}</div></div>`;
+  }
+  
+  statsHTML += `
+    <div class="stat-box"><div class="stat-ico">⏰</div><div class="stat-lbl">Last Active</div><div class="stat-val">${data.last_active || 'Unknown'}</div></div>
+    <div class="stat-box"><div class="stat-ico">⚠️</div><div class="stat-lbl">Micro-Txs</div><div class="stat-val">${data.small_tx_count || 0}</div></div>
+    <div class="stat-box"><div class="stat-ico">💨</div><div class="stat-lbl">Dust Txs</div><div class="stat-val">${data.dust_tx_count || 0}</div></div>
+    <div class="stat-box"><div class="stat-ico">🐋</div><div class="stat-lbl">Large-Txs</div><div class="stat-val">${data.large_tx_count || 0}</div></div>
+    <div class="stat-box"><div class="stat-ico">📈</div><div class="stat-lbl">Max Tx</div><div class="stat-val">${data.max_tx_amount || '0'} ${data.currency || ''}</div></div>
+  `;
+  
+  $('statsGrid').innerHTML = statsHTML;
 
   // Charts
-  if (txChart)   txChart.destroy();
+  if (txChart) txChart.destroy();
   if (riskChart) riskChart.destroy();
 
-  const total  = data.transactions_found || 1;
-  const normal = Math.max(0, total - data.small_tx_count - data.large_tx_count);
+  const total = data.transactions_found || 1;
+  const normal = Math.max(0, total - (data.small_tx_count || 0) - (data.large_tx_count || 0));
 
-  txChart = new Chart($('txChart'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Normal', 'Micro (<0.01 ETH)', 'Large (>10 ETH)'],
-      datasets: [{
-        data: [normal, data.small_tx_count, data.large_tx_count],
-        backgroundColor: ['rgba(34,211,238,.65)', 'rgba(245,158,11,.65)', 'rgba(239,68,68,.65)'],
-        borderColor:     ['rgba(34,211,238,1)',    'rgba(245,158,11,1)',   'rgba(239,68,68,1)'],
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: 'rgba(241,245,249,.55)', font: { size: 11, family: 'Inter' } } } }
-    }
-  });
-
-  const rf = {
-    'Micro-Txs':  Math.min(100, data.small_tx_count),
-    'Large-Txs':  Math.min(100, data.large_tx_count * 5),
-    'Volume':     Math.min(100, (parseFloat(data.total_volume) || 0) / 100),
-    'Recency':    data.last_active === 'Today' ? 80 : data.last_active.includes('day') ? 40 : 10,
-    'Tx-Count':   Math.min(100, data.transactions_found / 100),
-  };
-  riskChart = new Chart($('riskChart'), {
-    type: 'bar',
-    data: {
-      labels: Object.keys(rf),
-      datasets: [{
-        data: Object.values(rf),
-        backgroundColor: 'rgba(139,92,246,.6)',
-        borderColor:     'rgba(139,92,246,1)',
-        borderWidth: 1, borderRadius: 5
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: { beginAtZero: true, max: 100,
-             grid: { color: 'rgba(255,255,255,.04)' },
-             ticks: { color: 'rgba(241,245,249,.35)', font: { size: 10 } } },
-        x: { grid: { color: 'rgba(255,255,255,.04)' },
-             ticks: { color: 'rgba(241,245,249,.35)', font: { size: 10 } } }
+  const txChartCanvas = $('txChart');
+  if (txChartCanvas) {
+    txChart = new Chart(txChartCanvas, {
+      type: 'doughnut',
+      data: {
+        labels: ['Normal', 'Micro Transactions', 'Large Transactions'],
+        datasets: [{
+          data: [normal, data.small_tx_count || 0, data.large_tx_count || 0],
+          backgroundColor: ['rgba(34,211,238,.65)', 'rgba(245,158,11,.65)', 'rgba(239,68,68,.65)'],
+          borderColor: ['rgba(34,211,238,1)', 'rgba(245,158,11,1)', 'rgba(239,68,68,1)'],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: 'rgba(241,245,249,.55)', font: { size: 11, family: 'Inter' } } } }
       }
-    }
-  });
+    });
+  }
+
+  // Risk factors chart
+  const rf = {
+    'Micro-Txs': Math.min(100, (data.small_tx_count || 0) * 2),
+    'Dust Txs': Math.min(100, (data.dust_tx_count || 0) * 3),
+    'Large-Txs': Math.min(100, (data.large_tx_count || 0) * 5),
+    'Volume': Math.min(100, parseFloat(data.total_volume) || 0),
+    'Recency': data.last_active === 'Today' ? 80 : (data.last_active && data.last_active.includes('day') ? 40 : 10),
+    'Tx-Count': Math.min(100, (data.transactions_found || 0) / 10),
+  };
+  
+  const riskChartCanvas = $('riskChart');
+  if (riskChartCanvas) {
+    riskChart = new Chart(riskChartCanvas, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(rf),
+        datasets: [{
+          data: Object.values(rf),
+          backgroundColor: 'rgba(139,92,246,.6)',
+          borderColor: 'rgba(139,92,246,1)',
+          borderWidth: 1, borderRadius: 5
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: 'rgba(241,245,249,.35)', font: { size: 10 } } },
+          x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: 'rgba(241,245,249,.35)', font: { size: 10, rotation: 45 } } }
+        }
+      }
+    });
+  }
 
   // Patterns
   const pl = $('patternsList');
   if (data.reasons && data.reasons.length) {
     pl.innerHTML = data.reasons.map(r => {
-      const isCrit = r.startsWith('CRITICAL') || r.startsWith('EXTREME');
-      const isWarn = r.startsWith('HIGH') || r.startsWith('WARNING') || r.startsWith('LARGE') || r.startsWith('MASSIVE');
-      const pip    = isCrit ? 'pip-crit' : isWarn ? 'pip-warn' : 'pip-info';
+      const isCrit = r.includes('CRITICAL') || r.includes('EXTREME') || r.includes('🔴');
+      const isWarn = r.includes('HIGH') || r.includes('WARNING') || r.includes('⚠️');
+      const pip = isCrit ? 'pip-crit' : isWarn ? 'pip-warn' : 'pip-info';
       return `<div class="p-item"><div class="p-pip ${pip}"></div><div class="p-text">${r}</div></div>`;
     }).join('');
   } else {
@@ -1048,21 +1097,16 @@ function renderResults(data) {
 
   // Advice
   $('adviceBox').className = `advice-box ${cls}`;
-  $('adviceText').textContent = getAdvice(data.risk_level);
+  $('adviceText').textContent = getAdvice(data.risk_level || 'LOW', data.network);
 
   // Update ticker
-  ticks.unshift({ a: data.wallet.slice(0,6)+'...'+data.wallet.slice(-4), r: cls==='safe'?'low':cls==='high'?'high':'med', s: score });
+  const tickerShortAddr = data.wallet.length > 12 ? data.wallet.slice(0,6)+'...'+data.wallet.slice(-4) : data.wallet;
+  const tickRisk = cls === 'safe' ? 'low' : cls === 'high' ? 'high' : 'med';
+  ticks.unshift({ a: `${data.network === 'bitcoin' ? '₿' : 'Ξ'} ${tickerShortAddr}`, r: tickRisk, s: score, net: data.network === 'bitcoin' ? 'BTC' : 'ETH' });
   if (ticks.length > 6) ticks.pop();
   buildTicker();
 
   on('results');
-}
-
-function getAdvice(rl) {
-  if (rl.includes('HIGH'))                             return 'DO NOT interact with this wallet. Strong indicators of fraudulent activity detected. Report this address to blockchain security platforms immediately.';
-  if (rl.includes('MEDIUM'))                           return 'Exercise high caution. Verify all information independently before any transactions. Consider using escrow services for additional protection.';
-  if (rl.includes('LOW') && !rl.includes('VERY'))      return 'Exercise normal caution. No major red flags found, but always verify addresses and start with small test transactions.';
-  return 'This wallet shows normal activity patterns. Always practice good security — use hardware wallets for large amounts and enable 2FA on all exchanges.';
 }
 
 // ── AI AGENT (Groq)
@@ -1115,15 +1159,14 @@ async function sendMsg() {
   showTyping();
 
   const context = lastScan
-    ? `Wallet ${lastScan.wallet}: Risk=${lastScan.risk_level}, Score=${lastScan.risk_score}/100, ` +
+    ? `Wallet ${lastScan.wallet} (${lastScan.network}): Risk=${lastScan.risk_level}, Score=${lastScan.risk_score}/100, ` +
       `Txs=${lastScan.transactions_found}, Volume=${lastScan.total_volume}, ` +
-      `LastActive=${lastScan.last_active}, MicroTxs=${lastScan.small_tx_count}, ` +
-      `LargeTxs=${lastScan.large_tx_count}. ` +
-      `Patterns: ${(lastScan.reasons || []).join('; ')}`
+      `LastActive=${lastScan.last_active}, MicroTxs=${lastScan.small_tx_count}, DustTxs=${lastScan.dust_tx_count || 0}, ` +
+      `LargeTxs=${lastScan.large_tx_count}. Patterns: ${(lastScan.reasons || []).join('; ')}`
     : '';
 
   try {
-    const res  = await fetch('/agent', {
+    const res = await fetch('/agent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: msg, context })
@@ -1140,7 +1183,6 @@ async function sendMsg() {
     } else if (data.error === 'TIMEOUT') {
       addMsg('ai', '⚠️ Request timed out. Please try again.');
     } else if (data.reply) {
-      // Add signature to AI responses
       const signedReply = `${data.reply.replace(/\n/g, '<br>')}<br><br><small style="color:var(--muted);">✨ — ShieldAI (built by Hassan)</small>`;
       addMsg('ai', signedReply);
     } else {
