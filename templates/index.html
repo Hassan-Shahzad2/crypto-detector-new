@@ -1,3 +1,4 @@
+html 
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,7 +10,27 @@
 <style>
 /* ── RESET & ROOT ── */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* Light Mode (Default) */
 :root {
+  --bg:      #f8fafc;
+  --s1:      #ffffff;
+  --s2:      #f1f5f9;
+  --s3:      #e2e8f0;
+  --border:  rgba(0,0,0,.08);
+  --border2: rgba(0,0,0,.04);
+  --cyan:    #0891b2;
+  --violet:  #7c3aed;
+  --green:   #059669;
+  --amber:   #d97706;
+  --red:     #dc2626;
+  --text:    #0f172a;
+  --sub:     #475569;
+  --muted:   #64748b;
+}
+
+/* Dark Mode */
+[data-theme="dark"] {
   --bg:      #05080f;
   --s1:      #090d18;
   --s2:      #0c1220;
@@ -25,6 +46,7 @@
   --sub:     #94a3b8;
   --muted:   #64748b;
 }
+
 html { scroll-behavior: smooth; }
 body {
   font-family: 'Inter', system-ui, sans-serif;
@@ -35,10 +57,11 @@ body {
   font-size: 15px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* ── GRID BG ── */
-body::before {
+/* ── GRID BG (Only in dark mode) ── */
+[data-theme="dark"] body::before {
   content: '';
   position: fixed; inset: 0; pointer-events: none; z-index: 0;
   background-image:
@@ -47,18 +70,22 @@ body::before {
   background-size: 56px 56px;
 }
 
-/* ── GLOW ORBS ── */
-.orb { position: fixed; border-radius: 50%; filter: blur(120px); pointer-events: none; z-index: 0; }
-.orb-1 { width: 700px; height: 700px; background: rgba(34,211,238,.035);  top: -250px;  right: -200px; }
-.orb-2 { width: 600px; height: 600px; background: rgba(139,92,246,.045);  bottom: -200px; left: -200px; }
-.orb-3 { width: 400px; height: 400px; background: rgba(16,185,129,.02);   top: 40%;     left: 40%;    transform: translate(-50%,-50%); }
+/* ── GLOW ORBS (Only in dark mode) ── */
+[data-theme="dark"] .orb { position: fixed; border-radius: 50%; filter: blur(120px); pointer-events: none; z-index: 0; }
+[data-theme="dark"] .orb-1 { width: 700px; height: 700px; background: rgba(34,211,238,.035); top: -250px; right: -200px; }
+[data-theme="dark"] .orb-2 { width: 600px; height: 600px; background: rgba(139,92,246,.045); bottom: -200px; left: -200px; }
+[data-theme="dark"] .orb-3 { width: 400px; height: 400px; background: rgba(16,185,129,.02); top: 40%; left: 40%; transform: translate(-50%,-50%); }
 
-/* ── NAVBAR (Mobile First) ── */
+/* Light mode orbs hidden */
+.orb { display: none; }
+
+/* ── NAVBAR ── */
 nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 999;
-  background: rgba(5,8,15,.95);
+  background: var(--s1);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
+  transition: background-color 0.3s ease;
 }
 .nav-container {
   max-width: 1360px;
@@ -80,6 +107,7 @@ nav {
   width: 32px; height: 32px; border-radius: 9px;
   background: linear-gradient(135deg, var(--cyan), var(--violet));
   display: flex; align-items: center; justify-content: center; font-size: 15px;
+  color: white;
 }
 
 /* Desktop navigation */
@@ -93,6 +121,36 @@ nav {
   transition: color .2s;
 }
 .nav-links a:hover { color: var(--cyan); }
+
+/* Theme Toggle Button */
+.theme-toggle {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1.1rem;
+}
+.theme-toggle:hover {
+  transform: scale(1.05);
+  border-color: var(--cyan);
+}
+.theme-toggle .light-icon { display: inline; }
+.theme-toggle .dark-icon { display: none; }
+[data-theme="dark"] .theme-toggle .light-icon { display: none; }
+[data-theme="dark"] .theme-toggle .dark-icon { display: inline; }
+
+/* Right nav group */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
 /* Mobile menu button */
 .menu-btn {
@@ -121,7 +179,7 @@ nav {
   top: 62px;
   left: 0;
   right: 0;
-  background: rgba(5,8,15,.98);
+  background: var(--s1);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
   transform: translateY(-100%);
@@ -184,7 +242,7 @@ nav {
 h1 {
   font-size: clamp(2rem, 5vw, 4rem);
   font-weight: 900; line-height: 1.06; letter-spacing: -.035em;
-  color: #fff; margin-bottom: 20px;
+  color: var(--text); margin-bottom: 20px;
 }
 h1 em {
   font-style: normal;
@@ -228,7 +286,7 @@ h1 em {
 .ticker-card {
   background: var(--s1); border: 1px solid var(--border);
   border-radius: 18px; padding: 22px;
-  box-shadow: 0 0 60px rgba(34,211,238,.06), 0 20px 60px rgba(0,0,0,.4);
+  box-shadow: 0 0 60px rgba(34,211,238,.06), 0 20px 60px rgba(0,0,0,.1);
 }
 .tc-head {
   display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
@@ -267,7 +325,7 @@ h1 em {
   .section { padding: 80px 48px; }
 }
 .sec-tag { font-size: .68rem; font-weight: 700; color: var(--cyan); text-transform: uppercase; letter-spacing: .14em; margin-bottom: 10px; }
-.sec-h   { font-size: clamp(1.5rem, 4vw, 2.5rem); font-weight: 800; letter-spacing: -.025em; color: #fff; margin-bottom: 8px; }
+.sec-h   { font-size: clamp(1.5rem, 4vw, 2.5rem); font-weight: 800; letter-spacing: -.025em; color: var(--text); margin-bottom: 8px; }
 .sec-p   { font-size: .92rem; color: var(--sub); max-width: 520px; margin-bottom: 36px; line-height: 1.7; }
 
 /* ── SCANNER ── */
@@ -400,13 +458,13 @@ h1 em {
   .gauge-ring { width: 110px; height: 110px; }
 }
 .gauge-svg  { transform: rotate(-90deg); }
-.g-bg   { fill: none; stroke: rgba(255,255,255,.04); stroke-width: 7; }
+.g-bg   { fill: none; stroke: rgba(255,255,255,.1); stroke-width: 7; }
 .g-fill { fill: none; stroke-width: 7; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
 .gauge-inner {
   position: absolute; inset: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
-.gauge-num { font-family: 'JetBrains Mono', monospace; font-size: 1.3rem; font-weight: 700; line-height: 1; }
+.gauge-num { font-family: 'JetBrains Mono', monospace; font-size: 1.3rem; font-weight: 700; line-height: 1; color: var(--text); }
 @media (min-width: 480px) {
   .gauge-num { font-size: 1.65rem; }
 }
@@ -511,6 +569,7 @@ h1 em {
   width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
   background: linear-gradient(135deg, var(--violet), var(--cyan));
   display: flex; align-items: center; justify-content: center; font-size: 15px;
+  color: white;
 }
 @media (min-width: 480px) {
   .agent-ava { width: 38px; height: 38px; font-size: 17px; }
@@ -550,12 +609,13 @@ h1 em {
 .msg-ava {
   width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center; font-size: 12px;
+  color: white;
 }
 @media (min-width: 480px) {
   .msg-ava { width: 30px; height: 30px; font-size: 13px; }
 }
 .msg-ava.ai   { background: linear-gradient(135deg, var(--violet), var(--cyan)); }
-.msg-ava.user { background: var(--s3); border: 1px solid var(--border); }
+.msg-ava.user { background: var(--s3); border: 1px solid var(--border); color: var(--text); }
 
 .bubble {
   max-width: 80%;
@@ -671,15 +731,21 @@ footer strong { color: var(--sub); font-weight: 600; }
       <a href="#agent">AI Agent</a>
       <a href="#about">About</a>
     </div>
-    <div class="nav-live">
-      <span class="live-dot"></span>
-      Live
+    <div class="nav-right">
+      <div class="nav-live">
+        <span class="live-dot"></span>
+        Live
+      </div>
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+        <span class="light-icon">☀️</span>
+        <span class="dark-icon">🌙</span>
+      </button>
+      <button class="menu-btn" id="menuBtn" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
     </div>
-    <button class="menu-btn" id="menuBtn" onclick="toggleMenu()">
-      <span></span>
-      <span></span>
-      <span></span>
-    </button>
   </div>
 </nav>
 
@@ -873,6 +939,35 @@ footer strong { color: var(--sub); font-weight: 600; }
 </footer>
 
 <script>
+// ── THEME TOGGLE FUNCTION ──
+function toggleTheme() {
+  const html = document.documentElement;
+  const currentTheme = html.getAttribute('data-theme');
+  
+  if (currentTheme === 'dark') {
+    html.removeAttribute('data-theme');
+    localStorage.setItem('theme', 'light');
+  } else {
+    html.setAttribute('data-theme', 'dark');
+    localStorage.setItem('theme', 'dark');
+  }
+  
+  // Refresh charts to match new theme colors if needed
+  if (lastScan) {
+    renderResults(lastScan);
+  }
+}
+
+// Load saved theme on page load
+function loadTheme() {
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+}
+
 // ── Mobile Menu Functions
 function toggleMenu() {
   const menu = document.getElementById('mobileMenu');
@@ -928,7 +1023,6 @@ async function checkWallet() {
     return; 
   }
   
-  // Let the backend validate - just check if it's not empty
   $('scanBtn').disabled = true;
   $('results').classList.remove('on');
   $('errBox').classList.remove('on');
@@ -1000,7 +1094,7 @@ function renderResults(data) {
   $('gFill').style.stroke = col;
   setTimeout(() => { $('gFill').style.strokeDashoffset = 289 - (289 * score / 100); }, 80);
 
-  // Stats - WITH DUST TXS COUNTER ADDED
+  // Stats
   let statsHTML = `
     <div class="stat-box"><div class="stat-ico">🌐</div><div class="stat-lbl">Network</div><div class="stat-val">${networkIcon} ${networkName}</div></div>
     <div class="stat-box"><div class="stat-ico">📊</div><div class="stat-lbl">Transactions</div><div class="stat-val">${(data.transactions_found || 0).toLocaleString()}</div></div>
@@ -1021,7 +1115,7 @@ function renderResults(data) {
   
   $('statsGrid').innerHTML = statsHTML;
 
-  // Charts
+  // Charts - Destroy old ones
   if (txChart) txChart.destroy();
   if (riskChart) riskChart.destroy();
 
@@ -1036,14 +1130,14 @@ function renderResults(data) {
         labels: ['Normal', 'Micro Transactions', 'Large Transactions'],
         datasets: [{
           data: [normal, data.small_tx_count || 0, data.large_tx_count || 0],
-          backgroundColor: ['rgba(34,211,238,.65)', 'rgba(245,158,11,.65)', 'rgba(239,68,68,.65)'],
+          backgroundColor: ['rgba(34,211,238,.7)', 'rgba(245,158,11,.7)', 'rgba(239,68,68,.7)'],
           borderColor: ['rgba(34,211,238,1)', 'rgba(245,158,11,1)', 'rgba(239,68,68,1)'],
           borderWidth: 1
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: 'rgba(241,245,249,.55)', font: { size: 11, family: 'Inter' } } } }
+        plugins: { legend: { labels: { color: getComputedStyle(document.documentElement).getPropertyValue('--sub'), font: { size: 11, family: 'Inter' } } } }
       }
     });
   }
@@ -1075,8 +1169,8 @@ function renderResults(data) {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: 'rgba(241,245,249,.35)', font: { size: 10 } } },
-          x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: 'rgba(241,245,249,.35)', font: { size: 10, rotation: 45 } } }
+          y: { beginAtZero: true, max: 100, grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--border') }, ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--muted'), font: { size: 10 } } },
+          x: { grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--border') }, ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--muted'), font: { size: 10, rotation: 45 } } }
         }
       }
     });
@@ -1198,6 +1292,9 @@ async function sendMsg() {
 }
 
 $('walletInput').addEventListener('keypress', e => { if (e.key === 'Enter') checkWallet(); });
+
+// Initialize theme on page load
+loadTheme();
 </script>
 </body>
 </html>
