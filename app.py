@@ -1,17 +1,580 @@
 import os
 import sys
+import json
+import re
+import time
+from datetime import datetime
+from typing import Dict, Any, List, Optional, Tuple
+from functools import wraps
+from collections import defaultdict
+import hashlib
 
 sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session
 import requests
-import time
 from dotenv import load_dotenv
-import re
+from threading import Lock
+from datetime import timedelta
 
 load_dotenv()
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
+
+# Rate limiting
+rate_limits = defaultdict(list)
+RATE_LIMIT = 30
+RATE_WINDOW = 60
+
+def rate_limit(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        ip = request.remote_addr
+        now = time.time()
+        window_start = now - RATE_WINDOW
+        
+        rate_limits[ip] = [t for t in rate_limits[ip] if t > window_start]
+        
+        if len(rate_limits[ip]) >= RATE_LIMIT:
+            return jsonify({'error': 'RATE_LIMIT', 'message': 'Too many requests. Please wait a moment.'}), 429
+        
+        rate_limits[ip].append(now)
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Cache for API calls
+api_cache = {}
+cache_lock = Lock()
+
+# ─── HELPER FUNCTIONS ────────────────────────────────────────────────────────
+
+def validate_ethereum_address(address: str) -> bool:
+    return address.startswith('0x') and len(address) == 42 and all(c in '0123456789abcdefABCDEF' for c in address[2:])
+
+def validate_bitcoin_address(address: str) -> bool:
+    address = address.strip()
+    if re.match(r'^1[1-9A-HJ-NP-Za-km-z]{25,34}$', address):
+        return True
+    if re.match(r'^3[1-9A-HJ-NP-Za-km-z]{25,34}$', address):
+        return True
+    if re.match(r'^(bc1)[a-zA-HJ-NP-Z0-9]{39,59}$', address):
+        return True
+    return False
+
+def detect_network(address: str) -> Optional[str]:
+    address = address.strip()
+    if address.startswith('0x') and len(address) == 42:
+        return 'ethereum'
+    elif validate_bitcoin_address(address):
+        return 'bitcoin'
+    return None
+
+def get_with_cache(url: str, ttl: int = 300) -> Optional[Dict]:
+    cache_key = hashlib.md5(url.encode()).hexdigest()
+    with cache_lock:
+        if cache_key in api_cache:
+            cached_data, timestamp = api_cache[cache_key]
+            if time.time() - timestamp < ttl:
+                return cached_data
+            del api_cache[cache_key]
+    
+    try:
+        response = requests.get(url, timeout=15)
+        if response.status_code == 200:
+            data = response.json()
+            with cache_lock:
+                api_cache[cache_key] = (data, time.time())
+            return data
+    except Exception as e:
+        print(f"Cache fetch error: {e}")
+    return None
+
+def normalize_risk_score(score: int) -> Dict:
+    score = max(0, min(100, score))
+    if score >= 70:
+        return {'level': 'CRITICAL RISK', 'color': '#ef4444', 'icon': '🚨', 'class': 'critical'}
+    elif score >= 50:
+        return {'level': 'HIGH RISK', 'color': '#f59e0b', 'icon': '⚠️', 'class': 'high'}
+    elif score >= 25:
+        return {'level': 'MEDIUM RISK', 'color': '#eab308', 'icon': '⚡', 'class': 'medium'}
+    elif score >= 10:
+        return {'level': 'LOW RISK', 'color': '#06b6d4', 'icon': '📊', 'class': 'low'}
+    else:
+        return {'level': 'VERY LOW RISK', 'color': '#10b981', 'icon': '✅', 'class': 'safe'}
+
+# ─── ETHERSCAN (ETHEREUM) ────────────────────────────────────────────────────
+
+def get_ethereum_wallet_data(wallet_address: str) -> Dict:
+    api_key = os.environ.get('ETHERSCAN_API_KEY', '').strip()
+    if not api_key:
+        return {'error': 'No Etherscan API key configured', 'is_real_data': False}
+    
+    url = (f"https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist"
+           f"&address={wallet_address}&startblock=0&endblock=99999999&sort=desc&apikey={api_key}")
+    
+    try:
+        data = get_with_cache(url, ttl=120)
+        if not data:
+            return {'error': 'Failed to fetch data', 'is_real_data': False}
+        
+        if data.get('message') == 'NOTOK':
+            return {'error': data.get('result', 'Unknown error'), 'is_real_data': False}
+        
+        if data.get('status') == '1' and data.get('result'):
+            txs = data['result']
+            if isinstance(txs, list) and len(txs) > 0:
+                return _process_ethereum_transactions(txs, wallet_address)
+        
+        return _empty_ethereum_data()
+        
+    except Exception as e:
+        print(f"Etherscan error: {e}")
+        return {'error': str(e), 'is_real_data': False}
+
+def _process_ethereum_transactions(txs: List[Dict], wallet_address: str) -> Dict:
+    total_tx = len(txs)
+    small_tx_count = 0
+    dust_tx_count = 0
+    large_tx_count = 0
+    max_amount = 0
+    total_volume = 0
+    total_received = 0
+    total_sent = 0
+    incoming_tx_count = 0
+    outgoing_tx_count = 0
+    unique_senders = set()
+    unique_receivers = set()
+    last_active_timestamp = 0
+    hourly_activity = [0] * 24
+    
+    for tx in txs[:1000]:
+        try:
+            value = int(tx.get('value', '0')) / 1e18
+            timestamp = int(tx.get('timeStamp', 0))
+            if timestamp > 0:
+                hour = datetime.fromtimestamp(timestamp).hour
+                if 0 <= hour < 24:
+                    hourly_activity[hour] += 1
+            
+            if timestamp > last_active_timestamp:
+                last_active_timestamp = timestamp
+            
+            to_addr = tx.get('to', '').lower() if tx.get('to') else ''
+            from_addr = tx.get('from', '').lower() if tx.get('from') else ''
+            wallet_lower = wallet_address.lower()
+            
+            if to_addr == wallet_lower:
+                incoming_tx_count += 1
+                total_received += value
+                if from_addr:
+                    unique_senders.add(from_addr)
+            elif from_addr == wallet_lower:
+                outgoing_tx_count += 1
+                total_sent += value
+                if to_addr:
+                    unique_receivers.add(to_addr)
+            
+            total_volume += value
+            
+            if value < 0.0001:
+                dust_tx_count += 1
+            if value < 0.01:
+                small_tx_count += 1
+            if value > 10:
+                large_tx_count += 1
+            if value > max_amount:
+                max_amount = value
+        except Exception as e:
+            continue
+    
+    days_inactive = 999
+    if last_active_timestamp > 0:
+        days_inactive = max(0, int((time.time() - last_active_timestamp) / 86400))
+    
+    balance = _get_eth_balance(wallet_address)
+    
+    return {
+        'total_tx': total_tx,
+        'incoming_tx_count': incoming_tx_count,
+        'outgoing_tx_count': outgoing_tx_count,
+        'small_tx_count': small_tx_count,
+        'dust_tx_count': dust_tx_count,
+        'large_tx_count': large_tx_count,
+        'max_tx_amount': max_amount,
+        'total_volume': total_volume,
+        'total_received': total_received,
+        'total_sent': total_sent,
+        'unique_senders': len(unique_senders),
+        'unique_receivers': len(unique_receivers),
+        'last_active_days': days_inactive,
+        'recent_activity': days_inactive == 0,
+        'balance': balance,
+        'activity_hours': hourly_activity,
+        'network': 'ethereum',
+        'currency': 'ETH',
+        'is_real_data': True
+    }
+
+def _get_eth_balance(wallet_address: str) -> float:
+    api_key = os.environ.get('ETHERSCAN_API_KEY', '').strip()
+    if not api_key:
+        return 0
+    url = f"https://api.etherscan.io/v2/api?chainid=1&module=account&action=balance&address={wallet_address}&tag=latest&apikey={api_key}"
+    try:
+        data = get_with_cache(url, ttl=60)
+        if data and data.get('status') == '1':
+            result = data.get('result', '0')
+            if isinstance(result, str):
+                return int(result) / 1e18
+            return float(result) / 1e18
+    except:
+        pass
+    return 0
+
+def _empty_ethereum_data() -> Dict:
+    return {
+        'total_tx': 0, 'incoming_tx_count': 0, 'outgoing_tx_count': 0,
+        'small_tx_count': 0, 'dust_tx_count': 0, 'large_tx_count': 0,
+        'max_tx_amount': 0, 'total_volume': 0, 'total_received': 0,
+        'total_sent': 0, 'unique_senders': 0, 'unique_receivers': 0,
+        'last_active_days': 999, 'recent_activity': False, 'balance': 0,
+        'activity_hours': [0]*24, 'network': 'ethereum', 'currency': 'ETH',
+        'is_real_data': True
+    }
+
+# ─── BLOCKSTREAM (BITCOIN) ────────────────────────────────────────────────────
+
+def get_bitcoin_wallet_data(wallet_address: str) -> Dict:
+    try:
+        url = f"https://blockstream.info/api/address/{wallet_address}"
+        data = get_with_cache(url, ttl=120)
+        
+        if not data:
+            return {'error': 'Bitcoin address not found', 'is_real_data': False}
+        
+        tx_url = f"https://blockstream.info/api/address/{wallet_address}/txs"
+        txs_data = get_with_cache(tx_url, ttl=120)
+        
+        if not txs_data:
+            return {'error': 'Failed to fetch transactions', 'is_real_data': False}
+        
+        return _process_bitcoin_transactions(txs_data, data, wallet_address)
+        
+    except Exception as e:
+        print(f"Bitcoin API error: {e}")
+        return {'error': str(e), 'is_real_data': False}
+
+def _process_bitcoin_transactions(txs: List[Dict], address_data: Dict, wallet_address: str) -> Dict:
+    total_tx = len(txs) if isinstance(txs, list) else 0
+    small_tx_count = 0
+    dust_tx_count = 0
+    large_tx_count = 0
+    max_amount = 0
+    total_volume = 0
+    total_received = 0
+    total_sent = 0
+    incoming_tx_count = 0
+    outgoing_tx_count = 0
+    unique_senders = set()
+    unique_receivers = set()
+    last_active_timestamp = 0
+    hourly_activity = [0] * 24
+    
+    for tx in txs[:500]:
+        try:
+            timestamp = tx.get('status', {}).get('block_time', 0)
+            if timestamp > last_active_timestamp:
+                last_active_timestamp = timestamp
+            
+            if timestamp > 0:
+                hour = datetime.fromtimestamp(timestamp).hour
+                if 0 <= hour < 24:
+                    hourly_activity[hour] += 1
+            
+            is_sending = False
+            tx_value = 0
+            wallet_lower = wallet_address.lower()
+            
+            for vin in tx.get('vin', []):
+                prevout = vin.get('prevout', {})
+                if prevout.get('scriptpubkey_address', '').lower() == wallet_lower:
+                    is_sending = True
+                    amount_sent = prevout.get('value', 0) / 1e8
+                    if amount_sent > 0:
+                        tx_value -= amount_sent
+                        total_sent += amount_sent
+                        outgoing_tx_count += 1
+            
+            for vout in tx.get('vout', []):
+                addr = vout.get('scriptpubkey_address', '')
+                if addr and addr.lower() == wallet_lower:
+                    amount_received = vout.get('value', 0) / 1e8
+                    tx_value += amount_received
+                    total_received += amount_received
+                    incoming_tx_count += 1
+                elif is_sending and addr:
+                    unique_receivers.add(addr)
+            
+            abs_value = abs(tx_value)
+            if abs_value > 0:
+                total_volume += abs_value
+                if abs_value < 0.00001:
+                    dust_tx_count += 1
+                if abs_value < 0.001:
+                    small_tx_count += 1
+                if abs_value > 1.0:
+                    large_tx_count += 1
+                if abs_value > max_amount:
+                    max_amount = abs_value
+        except Exception as e:
+            continue
+    
+    days_inactive = 999
+    if last_active_timestamp > 0:
+        days_inactive = max(0, int((time.time() - last_active_timestamp) / 86400))
+    
+    funded_txo_sum = address_data.get('chain_stats', {}).get('funded_txo_sum', 0) / 1e8
+    spent_txo_sum = address_data.get('chain_stats', {}).get('spent_txo_sum', 0) / 1e8
+    balance = funded_txo_sum - spent_txo_sum
+    
+    return {
+        'total_tx': total_tx,
+        'incoming_tx_count': incoming_tx_count,
+        'outgoing_tx_count': outgoing_tx_count,
+        'small_tx_count': small_tx_count,
+        'dust_tx_count': dust_tx_count,
+        'large_tx_count': large_tx_count,
+        'max_tx_amount': max_amount,
+        'total_volume': total_volume,
+        'total_received': total_received,
+        'total_sent': total_sent,
+        'unique_senders': len(unique_senders),
+        'unique_receivers': len(unique_receivers),
+        'last_active_days': days_inactive,
+        'recent_activity': days_inactive == 0,
+        'balance': balance,
+        'activity_hours': hourly_activity,
+        'network': 'bitcoin',
+        'currency': 'BTC',
+        'is_real_data': True
+    }
+
+# ─── AI FRAUD DETECTION ────────────────────────────────────────────────────────
+
+def get_ai_fraud_analysis(wallet_data: Dict, wallet_address: str) -> Dict:
+    api_key = os.environ.get('GROQ_API_KEY', '').strip()
+    if not api_key:
+        return _rule_based_fraud_detection(wallet_data)
+    
+    prompt = _build_ai_analysis_prompt(wallet_data, wallet_address)
+    
+    try:
+        response = _call_groq_api(prompt, api_key)
+        if response:
+            return _parse_ai_response(response, wallet_data)
+    except Exception as e:
+        print(f"AI analysis error: {e}")
+    
+    return _rule_based_fraud_detection(wallet_data)
+
+def _build_ai_analysis_prompt(wallet_data: Dict, wallet_address: str) -> str:
+    network = wallet_data.get('network', 'unknown')
+    currency = wallet_data.get('currency', 'unknown')
+    
+    return f"""You are a blockchain forensic expert. Analyze this {network.upper()} wallet for fraud.
+
+WALLET: {wallet_address}
+NETWORK: {network.upper()}
+
+METRICS:
+- Total transactions: {wallet_data.get('total_tx', 0)}
+- Incoming: {wallet_data.get('incoming_tx_count', 0)}
+- Outgoing: {wallet_data.get('outgoing_tx_count', 0)}
+- Unique senders: {wallet_data.get('unique_senders', 0)}
+- Unique receivers: {wallet_data.get('unique_receivers', 0)}
+- Dust transactions: {wallet_data.get('dust_tx_count', 0)}
+- Small transactions: {wallet_data.get('small_tx_count', 0)}
+- Large transactions: {wallet_data.get('large_tx_count', 0)}
+- Max transaction: {wallet_data.get('max_tx_amount', 0):.4f} {currency}
+- Total volume: {wallet_data.get('total_volume', 0):.2f} {currency}
+- Total received: {wallet_data.get('total_received', 0):.2f} {currency}
+- Total sent: {wallet_data.get('total_sent', 0):.2f} {currency}
+- Current balance: {wallet_data.get('balance', 0):.8f} {currency}
+- Days inactive: {wallet_data.get('last_active_days', 999)}
+- Recent activity: {wallet_data.get('recent_activity', False)}
+
+Respond in JSON only:
+{{
+    "risk_score": 0-100,
+    "fraud_types": [],
+    "reasons": [],
+    "recommendation": "",
+    "pattern_description": ""
+}}"""
+
+def _call_groq_api(prompt: str, api_key: str) -> Optional[str]:
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "llama-3.3-70b-versatile",
+        "messages": [
+            {"role": "system", "content": "You are a blockchain forensic expert. Respond only in valid JSON format. Do not use markdown formatting like **bold** or *italic*. Use plain text only."},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.1,
+        "max_tokens": 800,
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=25)
+        if response.status_code == 200:
+            result = response.json()
+            return result['choices'][0]['message']['content']
+    except Exception as e:
+        print(f"Groq API error: {e}")
+    return None
+
+def _parse_ai_response(ai_response: str, wallet_data: Dict) -> Dict:
+    try:
+        ai_response = re.sub(r'```json\s*|\s*```', '', ai_response.strip())
+        analysis = json.loads(ai_response)
+        
+        risk_score = max(0, min(100, int(analysis.get('risk_score', 50))))
+        normalized = normalize_risk_score(risk_score)
+        
+        return {
+            'risk_level': normalized['level'],
+            'risk_score': risk_score,
+            'fraud_types': analysis.get('fraud_types', []),
+            'reasons': analysis.get('reasons', ['Analysis complete']),
+            'recommendation': analysis.get('recommendation', 'Exercise normal caution.'),
+            'pattern_description': analysis.get('pattern_description', 'Standard wallet activity'),
+            'confidence': 'HIGH',
+            'is_ai_analysis': True
+        }
+    except json.JSONDecodeError:
+        return _rule_based_fraud_detection(wallet_data)
+
+def _rule_based_fraud_detection(wallet_data: Dict) -> Dict:
+    risk_score = 0
+    reasons = []
+    fraud_types = []
+    
+    total_tx = wallet_data.get('total_tx', 0)
+    dust_count = wallet_data.get('dust_tx_count', 0)
+    unique_receivers = wallet_data.get('unique_receivers', 0)
+    balance = wallet_data.get('balance', 0)
+    total_volume = wallet_data.get('total_volume', 0)
+    outgoing_count = wallet_data.get('outgoing_tx_count', 0)
+    
+    if total_tx == 0:
+        return {
+            'risk_level': 'VERY LOW RISK',
+            'risk_score': 0,
+            'fraud_types': ['No transaction history'],
+            'reasons': ['No transaction history found for this wallet'],
+            'recommendation': 'This wallet has no transaction history. Exercise normal caution.',
+            'pattern_description': 'Inactive wallet with no transaction history.',
+            'confidence': 'HIGH',
+            'is_ai_analysis': False
+        }
+    
+    if total_tx > 0:
+        dust_percentage = (dust_count / total_tx) * 100
+        if dust_percentage > 40 and dust_count > 15:
+            risk_score += 45
+            reasons.append(f"🚨 {dust_count} dust transactions ({dust_percentage:.0f}% of total) — Strong address poisoning indicators")
+            fraud_types.append("dusting attack")
+        elif dust_percentage > 20 and dust_count > 10:
+            risk_score += 30
+            reasons.append(f"⚠️ {dust_count} dust transactions ({dust_percentage:.0f}% of total) — Suspicious dusting pattern")
+            fraud_types.append("potential dusting attack")
+    
+    if outgoing_count > 50 and unique_receivers > 30:
+        risk_score += 35
+        reasons.append(f"🔴 {outgoing_count} outgoing transactions to {unique_receivers} unique addresses — Money laundering pattern")
+        fraud_types.append("money laundering")
+    elif outgoing_count > 20 and unique_receivers > 15:
+        risk_score += 20
+        reasons.append(f"⚠️ High volume of outgoing transactions to diverse addresses")
+        fraud_types.append("unusual transaction pattern")
+    
+    if balance < 0.001 and total_volume > 10 and total_tx > 20:
+        risk_score += 30
+        reasons.append("🔄 Active wallet with near-zero balance — Possible mixing service")
+        fraud_types.append("mixing service usage")
+    
+    risk_score = min(100, risk_score)
+    normalized = normalize_risk_score(risk_score)
+    
+    if not reasons:
+        reasons = ["No suspicious patterns detected in transaction history"]
+    if not fraud_types:
+        fraud_types = ["normal activity"]
+    
+    return {
+        'risk_level': normalized['level'],
+        'risk_score': risk_score,
+        'fraud_types': list(set(fraud_types)),
+        'reasons': reasons,
+        'recommendation': _get_recommendation(risk_score),
+        'pattern_description': _get_pattern_description(risk_score, fraud_types),
+        'confidence': 'HIGH' if total_tx > 50 else 'MEDIUM',
+        'is_ai_analysis': False
+    }
+
+def _get_recommendation(risk_score: int) -> str:
+    if risk_score >= 70:
+        return "🚨 CRITICAL: DO NOT interact with this wallet. High probability of fraudulent activity. Report immediately to blockchain security platforms."
+    elif risk_score >= 50:
+        return "⚠️ HIGH RISK: Exercise extreme caution. Verify all information independently before any transaction. Consider using escrow services."
+    elif risk_score >= 25:
+        return "⚡ MEDIUM RISK: Some concerning patterns detected. Verify addresses carefully and start with small test transactions."
+    elif risk_score >= 10:
+        return "📊 LOW RISK: Minor concerns detected. Use standard security practices."
+    return "✅ SAFE: Normal activity detected. Continue practicing good security hygiene."
+
+def _get_pattern_description(risk_score: int, fraud_types: List[str]) -> str:
+    if risk_score >= 70:
+        return f"This wallet exhibits critical risk patterns including {', '.join(fraud_types[:3])}. Immediate action advised."
+    elif risk_score >= 50:
+        return f"High-risk transaction patterns detected: {', '.join(fraud_types[:2])}. Further investigation strongly recommended."
+    elif risk_score >= 25:
+        return "Unusual transaction patterns detected. Standard security precautions recommended."
+    elif risk_score >= 10:
+        return "Minor anomalies detected in transaction history. Normal security practices sufficient."
+    return "Transaction patterns appear normal with no significant red flags."
+
+# ─── WALLET HISTORY ───────────────────────────────────────────────────────────
+
+def get_wallet_history() -> List[Dict]:
+    return session.get('wallet_history', [])
+
+def add_to_history(wallet_address: str, scan_data: Dict) -> None:
+    history = session.get('wallet_history', [])
+    
+    for i, item in enumerate(history):
+        if item['wallet'] == wallet_address:
+            history.pop(i)
+            break
+    
+    history.insert(0, {
+        'wallet': wallet_address,
+        'network': scan_data.get('network'),
+        'risk_level': scan_data.get('risk_level'),
+        'risk_score': scan_data.get('risk_score'),
+        'timestamp': datetime.now().isoformat()
+    })
+    
+    session['wallet_history'] = history[:20]
+    session.permanent = True
+
+# ─── FLASK ROUTES ───────────────────────────────────────────────────────────
 
 @app.after_request
 def after_request(response):
@@ -20,382 +583,12 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Methods', 'GET, POST')
     return response
 
-# ─── HELPER FUNCTIONS ────────────────────────────────────────────────────────
-
-def validate_ethereum_address(address):
-    return address.startswith('0x') and len(address) == 42 and all(c in '0123456789abcdefABCDEF' for c in address[2:])
-
-def validate_bitcoin_address(address):
-    address = address.strip()
-    # P2PKH (starts with 1)
-    if re.match(r'^1[1-9A-HJ-NP-Za-km-z]{25,34}$', address):
-        return True
-    # P2SH (starts with 3)
-    if re.match(r'^3[1-9A-HJ-NP-Za-km-z]{25,34}$', address):
-        return True
-    # Bech32 (starts with bc1)
-    if re.match(r'^(bc1)[a-zA-HJ-NP-Z0-9]{39,59}$', address):
-        return True
-    return False
-
-def detect_network(address):
-    address = address.strip()
-    if address.startswith('0x') and len(address) == 42:
-        return 'ethereum'
-    elif validate_bitcoin_address(address):
-        return 'bitcoin'
-    return None
-
-# ─── ETHERSCAN (ETHEREUM) ────────────────────────────────────────────────────
-
-def test_etherscan_api_key(api_key):
-    if not api_key or api_key == 'YOUR_API_KEY_HERE':
-        return False, "No API key provided"
-    test_wallet = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb5"
-    url = f"https://api.etherscan.io/v2/api?chainid=1&module=account&action=balance&address={test_wallet}&tag=latest&apikey={api_key}"
-    try:
-        r = requests.get(url, timeout=10)
-        d = r.json()
-        if d.get('status') == '1':
-            return True, "Valid"
-        err = d.get('result', 'Unknown error')
-        return False, "Invalid API key" if 'Invalid API Key' in err else err
-    except Exception as e:
-        return False, str(e)
-
-def get_ethereum_wallet_data(wallet_address):
-    api_key = os.environ.get('ETHERSCAN_API_KEY', '').strip()
-    if not api_key:
-        return {'error': 'No Etherscan API key configured', 'is_real_data': False,
-                'total_tx': 0, 'small_tx_count': 0, 'dust_tx_count': 0, 'large_tx_count': 0,
-                'max_tx_amount': 0, 'total_volume': 0, 'last_active_days': 999}
-
-    url = (f"https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist"
-           f"&address={wallet_address}&startblock=0&endblock=99999999&sort=desc&apikey={api_key}")
-    try:
-        print(f"Fetching Ethereum wallet: {wallet_address}")
-        r = requests.get(url, timeout=15)
-        d = r.json()
-
-        if d.get('message') == 'NOTOK':
-            err = d.get('result', 'Unknown error')
-            if 'rate limit' in err.lower():
-                err = 'Rate limit exceeded. Please wait and try again.'
-            return {'error': err, 'is_real_data': False, 'total_tx': 0,
-                    'small_tx_count': 0, 'dust_tx_count': 0, 'large_tx_count': 0,
-                    'max_tx_amount': 0, 'total_volume': 0, 'last_active_days': 999}
-
-        if d.get('status') == '1' and d.get('result'):
-            txs = d['result']
-            total_tx = len(txs)
-            small_tx_count = 0
-            dust_tx_count = 0
-            large_tx_count = 0
-            max_amount = 0
-            total_volume = 0
-            recent_activity = False
-
-            for tx in txs[:500]:
-                try:
-                    amt = int(tx['value']) / 1e18
-                    if amt > 0:
-                        total_volume += amt
-                        if amt < 0.0001:  # ETH dust threshold
-                            dust_tx_count += 1
-                        if amt < 0.01:  # Small tx
-                            small_tx_count += 1
-                        if amt > 10:  # Large tx
-                            large_tx_count += 1
-                        if amt > max_amount:
-                            max_amount = amt
-                except:
-                    continue
-
-            days = 999
-            if txs:
-                try:
-                    days = max(0, int((int(time.time()) - int(txs[0]['timeStamp'])) / 86400))
-                    if days == 0:
-                        recent_activity = True
-                except:
-                    pass
-
-            print(f"Found {total_tx} ETH txs, {total_volume:.2f} ETH")
-            return {'total_tx': total_tx, 'small_tx_count': small_tx_count,
-                    'dust_tx_count': dust_tx_count, 'large_tx_count': large_tx_count,
-                    'max_tx_amount': max_amount, 'total_volume': total_volume,
-                    'last_active_days': days, 'recent_activity': recent_activity,
-                    'is_real_data': True, 'network': 'ethereum', 'currency': 'ETH'}
-
-        return {'total_tx': 0, 'small_tx_count': 0, 'dust_tx_count': 0, 'large_tx_count': 0,
-                'max_tx_amount': 0, 'total_volume': 0, 'last_active_days': 999,
-                'recent_activity': False, 'is_real_data': True,
-                'network': 'ethereum', 'currency': 'ETH'}
-
-    except Exception as e:
-        return {'error': str(e), 'is_real_data': False, 'total_tx': 0,
-                'small_tx_count': 0, 'dust_tx_count': 0, 'large_tx_count': 0,
-                'max_tx_amount': 0, 'total_volume': 0, 'last_active_days': 999}
-
-# ─── BLOCKSTREAM (BITCOIN) ────────────────────────────────────────────────────
-
-def get_bitcoin_wallet_data(wallet_address):
-    """Fetch Bitcoin wallet data using Blockstream API"""
-    try:
-        print(f"Fetching Bitcoin wallet: {wallet_address}")
-        
-        # Get address info
-        url = f"https://blockstream.info/api/address/{wallet_address}"
-        r = requests.get(url, timeout=15)
-        
-        if r.status_code == 404:
-            return {'error': 'Bitcoin address not found or has no transactions', 'is_real_data': False,
-                    'total_tx': 0, 'small_tx_count': 0, 'dust_tx_count': 0, 'large_tx_count': 0,
-                    'max_tx_amount': 0, 'total_volume': 0, 'last_active_days': 999}
-        
-        if r.status_code != 200:
-            return {'error': f'Blockstream API error: {r.status_code}', 'is_real_data': False,
-                    'total_tx': 0, 'small_tx_count': 0, 'dust_tx_count': 0, 'large_tx_count': 0,
-                    'max_tx_amount': 0, 'total_volume': 0, 'last_active_days': 999}
-        
-        data = r.json()
-        
-        # Get transactions
-        tx_url = f"https://blockstream.info/api/address/{wallet_address}/txs"
-        tx_r = requests.get(tx_url, timeout=15)
-        
-        if tx_r.status_code != 200:
-            return {'error': 'Failed to fetch transactions', 'is_real_data': False,
-                    'total_tx': 0, 'small_tx_count': 0, 'dust_tx_count': 0, 'large_tx_count': 0,
-                    'max_tx_amount': 0, 'total_volume': 0, 'last_active_days': 999}
-        
-        txs = tx_r.json()
-        
-        total_tx = len(txs) if isinstance(txs, list) else 0
-        small_tx_count = 0
-        dust_tx_count = 0
-        large_tx_count = 0
-        max_amount = 0
-        total_volume = 0
-        latest_timestamp = 0
-        
-        # Track outgoing transactions
-        outgoing_tx_count = 0
-        unique_outgoing_addresses = set()
-        
-        # Process transactions
-        for tx in txs[:500]:
-            # Determine if this wallet is sending or receiving
-            is_sending = False
-            tx_value = 0
-            
-            # Check inputs (sending)
-            for vin in tx.get('vin', []):
-                if 'prevout' in vin and vin['prevout'].get('scriptpubkey_address') == wallet_address:
-                    is_sending = True
-                    amount_sent = vin['prevout'].get('value', 0) / 1e8
-                    if amount_sent > 0:
-                        tx_value -= amount_sent
-            
-            # Check outputs (receiving)
-            for vout in tx.get('vout', []):
-                if 'scriptpubkey_address' in vout:
-                    if vout['scriptpubkey_address'] == wallet_address:
-                        amount_received = vout['value'] / 1e8
-                        tx_value += amount_received
-                    elif is_sending:
-                        unique_outgoing_addresses.add(vout['scriptpubkey_address'])
-            
-            if is_sending:
-                outgoing_tx_count += 1
-            
-            abs_value = abs(tx_value)
-            if abs_value > 0:
-                total_volume += abs_value
-                
-                # Dust threshold for Bitcoin (very small amounts)
-                if abs_value < 0.00001:  # < 1,000 satoshis - suspicious dust
-                    dust_tx_count += 1
-                if abs_value < 0.001:  # Small tx (< 100,000 satoshis)
-                    small_tx_count += 1
-                if abs_value > 1.0:  # Large tx (>1 BTC)
-                    large_tx_count += 1
-                if abs_value > max_amount:
-                    max_amount = abs_value
-            
-            # Track timestamp
-            if tx.get('status', {}).get('block_time', 0) > latest_timestamp:
-                latest_timestamp = tx['status']['block_time']
-        
-        # Calculate days since last activity
-        days = 999
-        recent_activity = False
-        if latest_timestamp > 0:
-            days = max(0, int((time.time() - latest_timestamp) / 86400))
-            if days == 0:
-                recent_activity = True
-        
-        # Get current balance
-        funded_txo_sum = data.get('chain_stats', {}).get('funded_txo_sum', 0) / 1e8
-        spent_txo_sum = data.get('chain_stats', {}).get('spent_txo_sum', 0) / 1e8
-        balance = funded_txo_sum - spent_txo_sum
-        
-        # Calculate dust percentage (indicator of address poisoning)
-        dust_percentage = (dust_tx_count / total_tx * 100) if total_tx > 0 else 0
-        
-        print(f"Found {total_tx} BTC txs, Volume: {total_volume:.8f} BTC, Dust: {dust_tx_count} ({dust_percentage:.1f}%)")
-        
-        return {
-            'total_tx': total_tx,
-            'small_tx_count': small_tx_count,
-            'dust_tx_count': dust_tx_count,
-            'dust_percentage': dust_percentage,
-            'large_tx_count': large_tx_count,
-            'max_tx_amount': max_amount,
-            'total_volume': total_volume,
-            'last_active_days': days,
-            'recent_activity': recent_activity,
-            'balance': balance,
-            'outgoing_tx_count': outgoing_tx_count,
-            'unique_outgoing_addresses': len(unique_outgoing_addresses),
-            'is_real_data': True,
-            'network': 'bitcoin',
-            'currency': 'BTC'
-        }
-        
-    except Exception as e:
-        print(f"Bitcoin API error: {e}")
-        return {'error': f'Bitcoin API error: {str(e)}', 'is_real_data': False, 'total_tx': 0,
-                'small_tx_count': 0, 'dust_tx_count': 0, 'large_tx_count': 0,
-                'max_tx_amount': 0, 'total_volume': 0, 'last_active_days': 999}
-
-# ─── FRAUD DETECTION - BALANCED AND REALISTIC ────────────────────────────────
-
-def detect_fraud(wallet_data):
-    risk_score = 0
-    reasons = []
-    
-    if wallet_data.get('error'):
-        return "CANT_ANALYZE", 0, [wallet_data['error']]
-    
-    network = wallet_data.get('network', 'ethereum')
-    currency = wallet_data.get('currency', 'ETH')
-    
-    total_tx = wallet_data.get('total_tx', 0)
-    
-    # ===== DUSTING / ADDRESS POISONING DETECTION =====
-    # Only suspicious if there's a HIGH percentage of dust transactions
-    dust_count = wallet_data.get('dust_tx_count', 0)
-    dust_percentage = wallet_data.get('dust_percentage', 0)
-    
-    if total_tx > 0:
-        if dust_percentage > 50 and dust_count > 20:
-            risk_score += 45
-            reasons.append(f"🔴 HIGH: {dust_count} dust transactions ({dust_percentage:.0f}% of total) — Strong address poisoning indicators")
-        elif dust_percentage > 30 and dust_count > 15:
-            risk_score += 30
-            reasons.append(f"⚠️ WARNING: {dust_count} dust transactions ({dust_percentage:.0f}% of total) — Suspicious pattern")
-        elif dust_percentage > 15 and dust_count > 10:
-            risk_score += 15
-            reasons.append(f"NOTICE: {dust_count} dust transactions ({dust_percentage:.0f}% of total) — Monitor for address poisoning")
-    
-    # ===== OUTGOING TRANSACTION PATTERNS =====
-    outgoing_tx = wallet_data.get('outgoing_tx_count', 0)
-    unique_outgoing = wallet_data.get('unique_outgoing_addresses', 0)
-    
-    if outgoing_tx > 100 and unique_outgoing > 50:
-        risk_score += 40
-        reasons.append(f"🔴 HIGH: {outgoing_tx} outgoing transactions to {unique_outgoing} unique addresses — Money laundering pattern")
-    elif outgoing_tx > 50 and unique_outgoing > 30:
-        risk_score += 25
-        reasons.append(f"⚠️ WARNING: High volume of outgoing transactions to diverse addresses")
-    elif outgoing_tx > 20 and unique_outgoing > 15:
-        risk_score += 10
-        reasons.append(f"NOTICE: Multiple outgoing transactions to different addresses")
-    
-    # ===== BALANCE ANALYSIS =====
-    balance = wallet_data.get('balance', 0)
-    if balance < 0.001 and total_tx > 20:  # Very low balance but high activity
-        risk_score += 25
-        reasons.append("⚠️ Active wallet with near-zero balance — Possible pass-through / mixer address")
-    
-    # ===== LARGE TRANSACTIONS =====
-    max_amt = wallet_data.get('max_tx_amount', 0)
-    if network == 'bitcoin':
-        if max_amt > 100:
-            risk_score += 25
-            reasons.append(f"LARGE: Single transaction of {max_amt:.2f} BTC — Unusual")
-        elif max_amt > 10:
-            risk_score += 10
-            reasons.append(f"NOTICE: Large transaction of {max_amt:.2f} BTC")
-    else:
-        if max_amt > 10000:
-            risk_score += 25
-            reasons.append(f"LARGE: Single transaction of {max_amt:.2f} ETH")
-        elif max_amt > 1000:
-            risk_score += 10
-            reasons.append(f"NOTICE: Large transaction of {max_amt:.2f} ETH")
-    
-    # ===== RECENT ACTIVITY =====
-    if wallet_data.get('recent_activity'):
-        risk_score += 5
-        reasons.append("Active in last 24 hours")
-    
-    # ===== NEW WALLET =====
-    if total_tx == 0:
-        risk_score += 10
-        reasons.append("Brand new wallet — No transaction history (exercise caution)")
-    elif total_tx < 5:
-        risk_score += 3
-        reasons.append("New wallet with few transactions")
-    
-    # ===== TOTAL VOLUME =====
-    volume = wallet_data.get('total_volume', 0)
-    if network == 'bitcoin':
-        if volume > 500:
-            risk_score += 20
-            reasons.append(f"HIGH volume: {volume:.2f} BTC")
-        elif volume > 100:
-            risk_score += 10
-            reasons.append(f"Notable volume: {volume:.2f} BTC")
-    
-    # Cap the risk score
-    risk_score = min(100, risk_score)
-    
-    # Determine risk level
-    if risk_score >= 60:
-        return "HIGH RISK ⚠️", risk_score, reasons
-    elif risk_score >= 35:
-        return "MEDIUM RISK ⚡", risk_score, reasons
-    elif risk_score >= 15:
-        return "LOW RISK 📊", risk_score, reasons
-    return "VERY LOW RISK ✅", risk_score, reasons if reasons else ["No suspicious patterns detected"]
-
-# ─── MAIN DATA FETCHER ──────────────────────────────────────────────────────
-
-def get_wallet_data(wallet_address):
-    wallet_address = wallet_address.strip()
-    network = detect_network(wallet_address)
-    
-    if network == 'ethereum':
-        return get_ethereum_wallet_data(wallet_address)
-    elif network == 'bitcoin':
-        return get_bitcoin_wallet_data(wallet_address)
-    else:
-        return {'error': 'Invalid wallet address format. Please enter a valid Ethereum (0x...) or Bitcoin address (1..., 3..., or bc1...).', 
-                'is_real_data': False,
-                'total_tx': 0, 'small_tx_count': 0, 'dust_tx_count': 0, 'large_tx_count': 0,
-                'max_tx_amount': 0, 'total_volume': 0, 'last_active_days': 999}
-
-
-# ─── ROUTES ──────────────────────────────────────────────────────────────────
-
 @app.route('/')
 def home():
     return render_template('index.html')
 
-
 @app.route('/check_wallet', methods=['POST'])
+@rate_limit
 def check_wallet():
     try:
         data = request.get_json()
@@ -408,94 +601,124 @@ def check_wallet():
         if not network:
             return jsonify({'error': 'Invalid format — Please enter a valid Ethereum or Bitcoin address'})
         
-        real_data = get_wallet_data(wallet)
+        if network == 'ethereum':
+            raw_data = get_ethereum_wallet_data(wallet)
+        else:
+            raw_data = get_bitcoin_wallet_data(wallet)
         
-        if real_data.get('error'):
-            return jsonify({'error': real_data['error']})
+        if raw_data.get('error'):
+            return jsonify({'error': raw_data['error']})
         
-        risk_level, risk_score, reasons = detect_fraud(real_data)
+        ai_analysis = get_ai_fraud_analysis(raw_data, wallet)
         
-        currency = real_data.get('currency', 'ETH')
-        decimals = 8 if currency == 'BTC' else 2
-        volume_format = f"{real_data['total_volume']:.{decimals}f} {currency}" if real_data['total_volume'] > 0 else f"0 {currency}"
-        max_format = f"{real_data['max_tx_amount']:.{decimals}f}" if real_data['max_tx_amount'] > 0 else "0"
+        currency = raw_data.get('currency', 'ETH')
+        decimals = 8 if currency == 'BTC' else 4
         
-        days = real_data['last_active_days']
-        last_active = ("No transactions" if days == 999
-                       else "Today" if days == 0
-                       else "1 day ago" if days == 1
-                       else f"{days} days ago")
+        last_active = "Never" if raw_data.get('last_active_days', 999) == 999 else \
+                      "Today" if raw_data.get('last_active_days', 999) == 0 else \
+                      f"{raw_data.get('last_active_days')} days ago"
         
-        balance_info = {}
-        if 'balance' in real_data and real_data['balance'] > 0:
-            balance_info['balance'] = f"{real_data['balance']:.8f} BTC"
-        
-        return jsonify({
+        result = {
             'wallet': wallet,
             'network': network,
             'currency': currency,
-            'risk_level': risk_level,
-            'risk_score': risk_score,
-            'reasons': reasons,
-            'transactions_found': real_data['total_tx'],
-            'total_volume': volume_format,
+            'risk_level': ai_analysis['risk_level'],
+            'risk_score': ai_analysis['risk_score'],
+            'fraud_types': ai_analysis['fraud_types'],
+            'confidence': ai_analysis.get('confidence', 'MEDIUM'),
+            'reasons': ai_analysis['reasons'],
+            'recommendation': ai_analysis['recommendation'],
+            'pattern_description': ai_analysis['pattern_description'],
+            'transactions_found': raw_data.get('total_tx', 0),
+            'total_volume': f"{raw_data.get('total_volume', 0):.{decimals}f} {currency}",
+            'total_received': f"{raw_data.get('total_received', 0):.{decimals}f} {currency}",
+            'total_sent': f"{raw_data.get('total_sent', 0):.{decimals}f} {currency}",
             'last_active': last_active,
-            'small_tx_count': real_data['small_tx_count'],
-            'dust_tx_count': real_data.get('dust_tx_count', 0),
-            'large_tx_count': real_data['large_tx_count'],
-            'max_tx_amount': max_format,
-            'outgoing_tx_count': real_data.get('outgoing_tx_count', 0),
-            'unique_outgoing': real_data.get('unique_outgoing_addresses', 0),
-            'is_real_data': real_data['is_real_data'],
-            **balance_info
-        })
+            'small_tx_count': raw_data.get('small_tx_count', 0),
+            'dust_tx_count': raw_data.get('dust_tx_count', 0),
+            'large_tx_count': raw_data.get('large_tx_count', 0),
+            'max_tx_amount': f"{raw_data.get('max_tx_amount', 0):.{decimals}f}",
+            'incoming_tx_count': raw_data.get('incoming_tx_count', 0),
+            'outgoing_tx_count': raw_data.get('outgoing_tx_count', 0),
+            'unique_senders': raw_data.get('unique_senders', 0),
+            'unique_receivers': raw_data.get('unique_receivers', 0),
+            'balance': f"{raw_data.get('balance', 0):.8f} {currency}" if raw_data.get('balance', 0) > 0 else None,
+            'is_ai_analysis': ai_analysis.get('is_ai_analysis', False)
+        }
+        
+        add_to_history(wallet, result)
+        
+        return jsonify(result)
         
     except Exception as e:
         print(f"Error in check_wallet: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'Server error: {str(e)}'})
 
-
 @app.route('/agent', methods=['POST'])
+@rate_limit
 def agent():
     try:
         data = request.get_json()
         user_message = data.get('message', '').strip()
-        context      = data.get('context', '')
-        api_key      = os.environ.get('GROQ_API_KEY', '').strip()
+        context = data.get('context', '')
+        api_key = os.environ.get('GROQ_API_KEY', '').strip()
 
         if not api_key:
             return jsonify({'error': 'NO_KEY'}), 500
         if not user_message:
             return jsonify({'error': 'Empty message'}), 400
 
-        system_prompt = (
-            "You are ShieldAI, an expert blockchain security agent. Help users understand "
-            "Ethereum and Bitcoin wallet risks, crypto scams, dusting attacks, and blockchain security. "
-            "Be concise and clear. Keep answers under 150 words. Never give financial advice."
-        )
-        if context:
-            system_prompt += f"\n\nLatest wallet scan context: {context}"
+        if len(context) > 2000:
+            context = context[:2000] + "..."
+        
+        system_prompt = f"""You are ShieldAI, a blockchain security expert.
 
+Important formatting rules:
+- NEVER use markdown like **bold** or *italic*
+- Use plain text only with line breaks
+- Use emojis for emphasis instead of markdown
+- Keep responses concise and clear
+
+Your role:
+- Analyze wallet addresses for fraud patterns
+- Explain crypto scams clearly
+- Provide security recommendations
+
+Guidelines:
+- Be concise (150-300 words)
+- Use bullet points with dashes (-)
+- Never give financial advice
+- Reference scan data if provided
+
+{context if context else 'No recent scan context.'}"""
+        
         url = "https://api.groq.com/openai/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
         }
         payload = {
-            "model": "llama-3.1-8b-instant",
+            "model": "llama-3.3-70b-versatile",
             "messages": [
                 {"role": "system", "content": system_prompt},
-                {"role": "user",   "content": user_message}
+                {"role": "user", "content": user_message}
             ],
-            "max_tokens": 512,
+            "max_tokens": 800,
             "temperature": 0.7
         }
 
-        res = requests.post(url, headers=headers, json=payload, timeout=20)
+        res = requests.post(url, headers=headers, json=payload, timeout=25)
 
         if res.status_code == 200:
             result = res.json()
             reply = result['choices'][0]['message']['content'].strip()
+            # Remove any remaining markdown bold/italic markers
+            reply = re.sub(r'\*\*([^*]+)\*\*', r'\1', reply)
+            reply = re.sub(r'\*([^*]+)\*', r'\1', reply)
+            reply = re.sub(r'__([^_]+)__', r'\1', reply)
+            reply = re.sub(r'_([^_]+)_', r'\1', reply)
             return jsonify({'reply': reply})
         elif res.status_code == 401:
             return jsonify({'error': 'INVALID_KEY'}), 401
@@ -508,60 +731,91 @@ def agent():
         print(f"Agent error: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/history', methods=['GET'])
+def get_history():
+    return jsonify({'history': get_wallet_history()})
+
+@app.route('/clear_history', methods=['POST'])
+def clear_history():
+    session.pop('wallet_history', None)
+    return jsonify({'success': True})
 
 @app.route('/test_api', methods=['GET'])
 def test_api():
     eth_key = os.environ.get('ETHERSCAN_API_KEY', '').strip()
     groq_key = os.environ.get('GROQ_API_KEY', '').strip()
-    is_valid, msg = test_etherscan_api_key(eth_key)
     
-    bitcoin_working = False
+    eth_valid = False
+    eth_msg = "Not configured"
+    if eth_key:
+        test_wallet = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb5"
+        url = f"https://api.etherscan.io/v2/api?chainid=1&module=account&action=balance&address={test_wallet}&tag=latest&apikey={eth_key}"
+        try:
+            r = requests.get(url, timeout=10)
+            d = r.json()
+            if d.get('status') == '1':
+                eth_valid = True
+                eth_msg = "Valid"
+            else:
+                eth_msg = "Invalid API key"
+        except Exception as e:
+            eth_msg = str(e)
+    
+    btc_working = False
     try:
         test_btc_addr = "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
         r = requests.get(f"https://blockstream.info/api/address/{test_btc_addr}", timeout=5)
-        bitcoin_working = r.status_code == 200
+        btc_working = r.status_code == 200
     except:
         pass
     
+    groq_valid = False
+    if groq_key:
+        try:
+            url = "https://api.groq.com/openai/v1/models"
+            headers = {"Authorization": f"Bearer {groq_key}"}
+            r = requests.get(url, headers=headers, timeout=10)
+            groq_valid = r.status_code == 200
+        except:
+            pass
+    
     return jsonify({
-        'etherscan_valid': is_valid,
-        'etherscan_message': msg,
+        'etherscan_valid': eth_valid,
+        'etherscan_message': eth_msg,
+        'bitcoin_api_working': btc_working,
         'groq_configured': bool(groq_key),
-        'bitcoin_api_working': bitcoin_working
+        'groq_valid': groq_valid,
+        'ai_enabled': groq_valid
     })
-
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print("\n" + "=" * 60)
-    print("🔒 CryptoShield — Fraud Detection System (Ethereum + Bitcoin)")
-    print("=" * 60)
-
+    
+    print("\n" + "=" * 70)
+    print("🛡️  CryptoShield AI — Blockchain Fraud Detection System")
+    print("=" * 70)
+    
     eth_key = os.environ.get('ETHERSCAN_API_KEY', '').strip()
     groq_key = os.environ.get('GROQ_API_KEY', '').strip()
-
-    if eth_key:
-        valid, msg = test_etherscan_api_key(eth_key)
-        print(f"🟣 Etherscan : {'✅ OK' if valid else '❌ INVALID'}")
-    else:
-        print("🟣 Etherscan : ⚠️ NOT CONFIGURED")
-
-    if groq_key:
-        print(f"🤖 Groq AI   : ✅ Configured")
-    else:
-        print("🤖 Groq AI   : ⚠️ NOT CONFIGURED")
     
-    print("🟠 Bitcoin   : Using Blockstream API (free, no key needed)")
+    print("\n🔌 API STATUS:")
+    print(f"   🟣 Etherscan API : {'✅ CONFIGURED' if eth_key else '⚠️ NOT CONFIGURED'}")
+    print(f"   🤖 Groq AI API   : {'✅ CONFIGURED' if groq_key else '⚠️ NOT CONFIGURED'}")
+    print("   🟠 Bitcoin API   : ✅ FREE (Blockstream.info)")
     
-    print(f"🌐 Server    : http://localhost:{port}")
-    print("=" * 60)
-    print("\n✨ Balanced fraud detection enabled:")
-    print("   • Dust percentage based detection (not just raw count)")
-    print("   • Realistic thresholds for normal wallets")
-    print("   • Pass-through wallet identification")
-    print("   • Outgoing transaction pattern analysis")
-    print("\n" + "=" * 60 + "\n")
-
+    print("\n🌐 SERVER:")
+    print(f"   • http://localhost:{port}")
+    print(f"   • http://0.0.0.0:{port}")
+    
+    print("\n⚡ FEATURES:")
+    print("   • Real-time ETH & BTC analysis")
+    print("   • Wallet scan history")
+    print("   • AI chatbot assistant")
+    print("   • Rate limiting protection")
+    
+    print("\n" + "=" * 70)
+    print("✨ System ready!\n")
+    
     app.run(host='0.0.0.0', port=port, debug=True)
