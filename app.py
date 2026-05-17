@@ -23,6 +23,29 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
 
+# Creator Information
+CREATOR_INFO = {
+    'name': 'Muhammad Hassan Shahzad',
+    'age': 22,
+    'university': 'Iqra University',
+    'cgpa': 3.72,
+    'degree': 'BS Computer Science',
+    'favourite food': 'Biryani',
+    'girlfriend':'Lol, thats a secret',
+    'skills': ['Python', 'Flask', 'Blockchain', 'Web Development', 'Networking' , 'Data Analysis'],
+    'interests': ['Blockchain Security', 'AI Fraud Detection', 'Cryptocurrency Forensics', 'Cybersecurity', 'Machine Learning' , 'Data Sciences'],
+    'bio': 'A passionate 22-year-old computer science student at Iqra University with a strong focus on blockchain security and AI-powered fraud detection systems. Currently maintaining a 3.72 CGPA while building innovative security solutions.',
+    'achievements': [
+        'Built CryptoShield AI - an advanced blockchain fraud detection system',
+        'Specialized in Ethereum and Bitcoin transaction analysis',
+        'Expert in identifying dusting attacks and money laundering patterns',
+        'Developed AI-powered wallet risk assessment algorithms'
+    ],
+
+    'email': 'mhsmk589@gmail.com',
+    'location': 'Karachi, Pakistan'
+}
+
 # Rate limiting
 rate_limits = defaultdict(list)
 RATE_LIMIT = 30
@@ -587,6 +610,11 @@ def after_request(response):
 def home():
     return render_template('index.html')
 
+@app.route('/creator', methods=['GET'])
+def creator_info():
+    """Get information about the creator Muhammad Hassan Shahzad"""
+    return jsonify(CREATOR_INFO)
+
 @app.route('/check_wallet', methods=['POST'])
 @rate_limit
 def check_wallet():
@@ -661,7 +689,7 @@ def check_wallet():
 def agent():
     try:
         data = request.get_json()
-        user_message = data.get('message', '').strip()
+        user_message = data.get('message', '').strip().lower()
         context = data.get('context', '')
         api_key = os.environ.get('GROQ_API_KEY', '').strip()
 
@@ -670,10 +698,64 @@ def agent():
         if not user_message:
             return jsonify({'error': 'Empty message'}), 400
 
+        # Check if user is asking about the creator
+        creator_keywords = ['who built you', 'who created you', 'who made you', 'your creator', 'about the creator', 
+                           'tell me about the creator', 'who is the developer', 'who developed you', 'hassan', 
+                           'muhammad hassan', 'creator of this tool', 'who programmed you', 'author of cryptoshield']
+        
+        if any(keyword in user_message for keyword in creator_keywords):
+            creator = CREATOR_INFO
+            reply = f"""🌟 About My Creator - Muhammad Hassan Shahzad 🌟
+
+Muhammad Hassan Shahzad is a {creator['age']}-year-old passionate Computer Science student at {creator['university']}, maintaining an impressive {creator['cgpa']} CGPA.
+
+📚 Education: {creator['degree']} at {creator['university']}
+💻 Skills: {', '.join(creator['skills'][:6])}
+🎯 Interests: {', '.join(creator['interests'])}
+📍 Location: {creator['location']}
+
+🏆 Key Achievements:
+- Built CryptoShield AI - Advanced blockchain fraud detection system
+- Specialized in Ethereum and Bitcoin transaction analysis
+- Expert in identifying dusting attacks and money laundering patterns
+
+✨ He built me with a vision to make blockchain security accessible to everyone, using cutting-edge AI technology to detect crypto fraud in real-time.
+
+💡 Fun fact: He maintains a 3.72 CGPA while building innovative security solutions like me!
+
+Feel free to ask me more about Hassan's work or anything about crypto security! 🛡️"""
+            return jsonify({'reply': reply})
+
+        # Handle wallet scan analysis requests
+        analyze_keywords = ['analyze the last wallet', 'explain the scan', 'what does the scan show', 
+                           'interpret the results', 'scan analysis', 'wallet analysis']
+        
+        if any(keyword in user_message for keyword in analyze_keywords) and context and 'No wallet scanned' not in context:
+            reply = f"""📊 Wallet Scan Analysis
+
+Based on the scan data:
+{context}
+
+Key Findings:
+- Risk Level: The wallet shows specific patterns that require attention
+- Transaction History: Analyzed for suspicious activity
+- Fraud Indicators: Checked against known scam patterns
+
+Recommendations:
+- Always verify addresses before sending transactions
+- Use hardware wallets for large amounts
+- Enable 2FA on all exchange accounts
+- Never share private keys or seed phrases
+
+For specific details about this wallet's risk score and fraud types, please check the scan results above.
+
+Need more clarification? Ask me specific questions about the findings! 🛡️"""
+            return jsonify({'reply': reply})
+
         if len(context) > 2000:
             context = context[:2000] + "..."
         
-        system_prompt = f"""You are ShieldAI, a blockchain security expert.
+        system_prompt = f"""You are ShieldAI, a blockchain security expert created by Muhammad Hassan Shahzad (22-year-old CS student at Iqra University, 3.72 CGPA).
 
 Important formatting rules:
 - NEVER use markdown like **bold** or *italic*
@@ -685,6 +767,16 @@ Your role:
 - Analyze wallet addresses for fraud patterns
 - Explain crypto scams clearly
 - Provide security recommendations
+- When asked, proudly share that you were built by Muhammad Hassan Shahzad
+
+Creator Info (Muhammad Hassan Shahzad):
+- Age: 22 years old
+- University: Iqra University (BS Computer Science)
+- CGPA: 3.72
+- Skills: Python, Flask, Blockchain, AI/ML, Web Development, Smart Contract Security
+- Passion: Blockchain security and AI-powered fraud detection
+- Favourite Food: Biryani
+- Girlfriend: Lol, that is a secret
 
 Guidelines:
 - Be concise (150-300 words)
@@ -692,7 +784,7 @@ Guidelines:
 - Never give financial advice
 - Reference scan data if provided
 
-{context if context else 'No recent scan context.'}"""
+{context if context else 'No recent scan context. Be helpful and friendly.'}"""
         
         url = "https://api.groq.com/openai/v1/chat/completions"
         headers = {
@@ -796,6 +888,11 @@ if __name__ == '__main__':
     print("\n" + "=" * 70)
     print("🛡️  CryptoShield AI — Blockchain Fraud Detection System")
     print("=" * 70)
+    print("\n👨‍💻 CREATOR: Muhammad Hassan Shahzad")
+    print(f"   • Age: {CREATOR_INFO['age']} years")
+    print(f"   • University: {CREATOR_INFO['university']}")
+    print(f"   • CGPA: {CREATOR_INFO['cgpa']}")
+    print(f"   • Degree: {CREATOR_INFO['degree']}")
     
     eth_key = os.environ.get('ETHERSCAN_API_KEY', '').strip()
     groq_key = os.environ.get('GROQ_API_KEY', '').strip()
@@ -814,8 +911,9 @@ if __name__ == '__main__':
     print("   • Wallet scan history")
     print("   • AI chatbot assistant")
     print("   • Rate limiting protection")
+    print("   • Creator info integration")
     
     print("\n" + "=" * 70)
-    print("✨ System ready!\n")
+    print("✨ System ready! Ask me 'Who built you?' to learn about my creator!\n")
     
     app.run(host='0.0.0.0', port=port, debug=True)

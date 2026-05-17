@@ -2,8 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-<title>CryptoShield AI — Blockchain Fraud Intelligence</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+<title>CryptoShield AI — Blockchain Fraud Intelligence | Built by Hassan</title>
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
+<link rel="shortcut icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='logo.png') }}">
+
 <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -28,6 +34,8 @@
   --text: #0f172a;
   --sub: #475569;
   --muted: #64748b;
+  --neon-glow: 0 0 10px rgba(8,145,178,0.3), 0 0 20px rgba(8,145,178,0.2);
+  --neon-purple: 0 0 10px rgba(124,58,237,0.3), 0 0 20px rgba(124,58,237,0.2);
 }
 
 [data-theme="dark"] {
@@ -45,6 +53,8 @@
   --text: #f1f5f9;
   --sub: #94a3b8;
   --muted: #64748b;
+  --neon-glow: 0 0 15px rgba(34,211,238,0.4), 0 0 30px rgba(34,211,238,0.2);
+  --neon-purple: 0 0 15px rgba(139,92,246,0.4), 0 0 30px rgba(139,92,246,0.2);
 }
 
 body {
@@ -55,6 +65,83 @@ body {
   font-size: 15px;
   line-height: 1.6;
   transition: background-color 0.3s ease;
+  overflow-x: hidden;
+}
+
+/* Neon Animations */
+@keyframes neonPulse {
+  0%, 100% { opacity: 0.7; filter: blur(2px); }
+  50% { opacity: 1; filter: blur(4px); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: var(--neon-glow); }
+  50% { box-shadow: 0 0 20px rgba(34,211,238,0.6), 0 0 40px rgba(34,211,238,0.3); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes borderGlow {
+  0%, 100% { border-color: rgba(34,211,238,0.3); }
+  50% { border-color: rgba(34,211,238,0.8); }
+}
+
+/* Apply animations */
+.scan-card, .agent-card, .risk-banner {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.stat-box, .chart-box, .patterns-box {
+  animation: slideInLeft 0.5s ease-out;
+  animation-fill-mode: both;
+}
+
+.stat-box:nth-child(1) { animation-delay: 0.05s; }
+.stat-box:nth-child(2) { animation-delay: 0.1s; }
+.stat-box:nth-child(3) { animation-delay: 0.15s; }
+.stat-box:nth-child(4) { animation-delay: 0.2s; }
+
+.chart-box:first-child { animation: slideInLeft 0.5s ease-out 0.1s both; }
+.chart-box:last-child { animation: slideInRight 0.5s ease-out 0.1s both; }
+
+.scan-btn, .cta-btn, .send-btn, .qbtn, .theme-toggle {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scan-btn:hover, .cta-btn:hover, .send-btn:hover {
+  animation: glowPulse 0.5s ease-in-out;
+  transform: translateY(-2px);
+}
+
+.risk-banner {
+  transition: all 0.3s ease;
+  animation: borderGlow 2s ease-in-out infinite;
+}
+
+.gauge-ring {
+  animation: float 3s ease-in-out infinite;
+}
+
+.g-fill {
+  transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 [data-theme="dark"] body::before {
@@ -73,6 +160,7 @@ body {
   filter: blur(120px);
   pointer-events: none;
   z-index: 0;
+  animation: neonPulse 8s ease-in-out infinite;
 }
 
 [data-theme="dark"] .orb-1 {
@@ -92,6 +180,194 @@ body {
 }
 
 .orb { display: none; }
+
+/* Logo styling */
+.nav-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  object-fit: cover;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  body { font-size: 14px; }
+  
+  .gauge-ring {
+    width: 70px !important;
+    height: 70px !important;
+  }
+  
+  .gauge-num { font-size: 1rem !important; }
+  .gauge-lbl { font-size: 0.55rem !important; }
+  .gauge-of { font-size: 0.5rem !important; }
+  
+  .gauge-svg {
+    width: 70px !important;
+    height: 70px !important;
+  }
+  
+  .g-bg, .g-fill { stroke-width: 5 !important; }
+  
+  .rb-level { font-size: 1.2rem !important; }
+  .rb-tag { font-size: 0.55rem !important; }
+  
+  .stat-lbl { font-size: 0.5rem !important; }
+  .stat-val { font-size: 0.75rem !important; }
+  .stat-ico { font-size: 0.85rem !important; }
+  
+  .stat-box { padding: 8px !important; }
+  .stats-grid { gap: 6px !important; }
+  
+  .risk-banner { padding: 12px !important; gap: 12px !important; }
+  
+  .bubble {
+    max-width: 90% !important;
+    font-size: 0.72rem !important;
+    padding: 8px 10px !important;
+  }
+  
+  .msg-ava {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 0.8rem !important;
+  }
+  
+  .agent-name { font-size: 0.78rem !important; }
+  .agent-status { font-size: 0.6rem !important; }
+  
+  .sec-h { font-size: 1.3rem !important; }
+  .sec-p { font-size: 0.85rem !important; margin-bottom: 20px !important; }
+  
+  .addr-inp { font-size: 0.7rem !important; padding: 10px 12px !important; }
+  .scan-btn { padding: 10px 16px !important; font-size: 0.75rem !important; }
+  
+  .qbtn { font-size: 0.55rem !important; padding: 4px 8px !important; }
+  .qq { font-size: 0.6rem !important; padding: 3px 8px !important; }
+  
+  .chart-lbl { font-size: 0.55rem !important; }
+  .chart-area { height: 150px !important; }
+  
+  .p-text { font-size: 0.7rem !important; }
+  .adv-text { font-size: 0.72rem !important; }
+  
+  .hero { padding: 80px 16px 40px !important; }
+  .section { padding: 40px 16px !important; }
+  
+  .nav-brand { font-size: 0.8rem !important; }
+  .ai-badge { font-size: 0.5rem !important; padding: 2px 6px !important; }
+  .nav-live { font-size: 0.6rem !important; padding: 3px 10px !important; }
+  .nav-logo { width: 28px; height: 28px; }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  .charts-row {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .risk-banner {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+  }
+  
+  .gauge-wrap {
+    margin-top: 10px !important;
+  }
+  
+  .quick-row {
+    justify-content: center !important;
+  }
+  
+  .qq-row {
+    justify-content: center !important;
+  }
+  
+  .hero-left, .hero-right {
+    text-align: center !important;
+  }
+  
+  .hero-desc {
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  
+  .cta-btn {
+    margin: 0 auto !important;
+  }
+  
+  .eyebrow {
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+}
+
+/* Signature and credit styles */
+.hassan-signature {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--cyan), var(--violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 700;
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+.ai-credit {
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+/* Better gauge centering for mobile */
+.gauge-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.gauge-num, .gauge-of {
+  line-height: 1.2;
+}
+
+/* Improved touch targets */
+button, .qbtn, .qq, .menu-btn, .theme-toggle, .send-btn {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:active, .qbtn:active, .qq:active {
+  transform: scale(0.96);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--s2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--cyan);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--violet);
+}
 
 nav {
   position: fixed;
@@ -123,17 +399,6 @@ nav {
   font-weight: 600;
   color: var(--cyan);
   text-decoration: none;
-}
-
-.brand-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, var(--cyan), var(--violet));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
 }
 
 .ai-badge {
@@ -374,6 +639,11 @@ h1 em {
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.scan-card:hover {
+  box-shadow: var(--neon-glow);
 }
 
 @media (min-width: 768px) {
@@ -401,9 +671,13 @@ h1 em {
   font-size: .8rem;
   color: var(--text);
   outline: none;
+  transition: all 0.3s ease;
 }
 
-.addr-inp:focus { border-color: var(--cyan); }
+.addr-inp:focus { 
+  border-color: var(--cyan); 
+  box-shadow: var(--neon-glow);
+}
 
 .scan-btn {
   background: linear-gradient(135deg, var(--cyan), #0891b2);
@@ -435,9 +709,10 @@ h1 em {
   padding: 5px 10px;
   border-radius: 7px;
   cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.qbtn:hover { border-color: var(--cyan); color: var(--cyan); }
+.qbtn:hover { border-color: var(--cyan); color: var(--cyan); box-shadow: var(--neon-glow); }
 
 .load-wrap { display: none; text-align: center; padding: 56px 20px; }
 .load-wrap.on { display: block; }
@@ -504,6 +779,14 @@ h1 em {
   justify-content: space-between;
   gap: 20px;
   flex-wrap: wrap;
+  transition: all 0.3s ease;
+}
+
+@media (max-width: 480px) {
+  .risk-banner {
+    flex-direction: column;
+    text-align: center;
+  }
 }
 
 .risk-banner.critical { background: linear-gradient(135deg,rgba(239,68,68,.15),rgba(239,68,68,.03)); border: 1px solid rgba(239,68,68,.35); }
@@ -538,42 +821,60 @@ h1 em {
   font-size: .7rem;
   color: var(--muted);
   margin-top: 6px;
+  word-break: break-all;
 }
 
 .gauge-wrap { text-align: center; flex-shrink: 0; }
 
 .gauge-ring {
   position: relative;
-  width: 90px;
-  height: 90px;
+  width: 110px;
+  height: 110px;
   margin: 0 auto;
-}
-
-@media (min-width: 480px) {
-  .gauge-ring { width: 110px; height: 110px; }
-}
-
-.gauge-svg { transform: rotate(-90deg); }
-.g-bg { fill: none; stroke: rgba(255,255,255,.1); stroke-width: 7; }
-.g-fill { fill: none; stroke-width: 7; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
-
-.gauge-inner {
-  position: absolute;
-  inset: 0;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
 }
 
-.gauge-num {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 1.3rem;
-  font-weight: 700;
+@media (max-width: 768px) {
+  .gauge-ring {
+    width: 80px !important;
+    height: 80px !important;
+  }
 }
 
-@media (min-width: 480px) {
-  .gauge-num { font-size: 1.65rem; }
+.gauge-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.g-bg { fill: none; stroke: rgba(128,128,128,.2); stroke-width: 8; }
+.g-fill { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+
+.gauge-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.gauge-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.gauge-of {
+  font-size: 0.65rem;
+  color: var(--muted);
 }
 
 .gauge-lbl {
@@ -599,11 +900,17 @@ h1 em {
   border: 1px solid var(--border);
   border-radius: 13px;
   padding: 12px;
+  transition: all 0.3s ease;
+}
+
+.stat-box:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--neon-purple);
 }
 
 .stat-ico { font-size: 1rem; margin-bottom: 6px; }
 .stat-lbl { font-size: .58rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
-.stat-val { font-family: 'JetBrains Mono', monospace; font-size: .9rem; font-weight: 700; }
+.stat-val { font-family: 'JetBrains Mono', monospace; font-size: .9rem; font-weight: 700; word-break: break-word; }
 
 .ai-analysis-badge {
   display: inline-flex;
@@ -652,6 +959,12 @@ h1 em {
   border: 1px solid var(--border);
   border-radius: 13px;
   padding: 15px;
+  transition: all 0.3s ease;
+}
+
+.chart-box:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--neon-glow);
 }
 
 .chart-lbl {
@@ -664,6 +977,10 @@ h1 em {
 }
 
 .chart-area { position: relative; height: 188px; }
+
+@media (max-width: 768px) {
+  .chart-area { height: 160px; }
+}
 
 .patterns-box {
   background: var(--s2);
@@ -681,6 +998,12 @@ h1 em {
   margin-bottom: 8px;
   background: rgba(255,255,255,.018);
   border: 1px solid var(--border2);
+  transition: all 0.3s ease;
+}
+
+.p-item:hover {
+  transform: translateX(5px);
+  border-color: var(--cyan);
 }
 
 .p-pip {
@@ -691,9 +1014,9 @@ h1 em {
   margin-top: 6px;
 }
 
-.pip-crit { background: var(--red); }
-.pip-warn { background: var(--amber); }
-.pip-info { background: var(--cyan); }
+.pip-crit { background: var(--red); box-shadow: 0 0 5px var(--red); }
+.pip-warn { background: var(--amber); box-shadow: 0 0 5px var(--amber); }
+.pip-info { background: var(--cyan); box-shadow: 0 0 5px var(--cyan); }
 
 .p-text {
   font-size: .75rem;
@@ -710,6 +1033,11 @@ h1 em {
   padding: 14px;
   border-left: 3px solid;
   margin-bottom: 6px;
+  transition: all 0.3s ease;
+}
+
+.advice-box:hover {
+  transform: translateX(3px);
 }
 
 @media (min-width: 480px) {
@@ -742,6 +1070,11 @@ h1 em {
   border: 1px solid var(--border);
   border-radius: 20px;
   overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.agent-card:hover {
+  box-shadow: var(--neon-purple);
 }
 
 .agent-head {
@@ -762,6 +1095,7 @@ h1 em {
   align-items: center;
   justify-content: center;
   color: white;
+  animation: float 3s ease-in-out infinite;
 }
 
 .agent-name { font-weight: 700; font-size: .85rem; }
@@ -808,6 +1142,7 @@ h1 em {
   align-items: center;
   justify-content: center;
   color: white;
+  flex-shrink: 0;
 }
 
 .msg-ava.ai { background: linear-gradient(135deg, var(--violet), var(--cyan)); }
@@ -865,6 +1200,7 @@ h1 em {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .qq {
@@ -875,12 +1211,15 @@ h1 em {
   padding: 4px 10px;
   border-radius: 16px;
   cursor: pointer;
+  transition: all 0.3s ease;
 }
 
 .qq:hover {
   background: rgba(139,92,246,.2);
   color: var(--text);
   border-color: var(--violet);
+  transform: translateY(-2px);
+  box-shadow: var(--neon-purple);
 }
 
 .agent-inp-row {
@@ -899,9 +1238,13 @@ h1 em {
   font-size: .78rem;
   color: var(--text);
   outline: none;
+  transition: all 0.3s ease;
 }
 
-.agent-inp:focus { border-color: var(--violet); }
+.agent-inp:focus { 
+  border-color: var(--violet); 
+  box-shadow: var(--neon-purple);
+}
 
 .send-btn {
   background: linear-gradient(135deg, var(--violet), #5b21b6);
@@ -910,6 +1253,12 @@ h1 em {
   border-radius: 9px;
   padding: 10px 16px;
   cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.send-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: var(--neon-purple);
 }
 
 .send-btn:disabled { opacity: .35; cursor: not-allowed; }
@@ -947,6 +1296,7 @@ h1 em {
   font-family: 'JetBrains Mono', monospace;
   font-size: .7rem;
   color: var(--sub);
+  word-break: break-all;
 }
 
 .tbadge {
@@ -978,7 +1328,7 @@ footer {
 <nav>
   <div class="nav-container">
     <a class="nav-brand" href="#">
-      <div class="brand-icon">🛡️</div>
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="CryptoShield AI Logo" class="nav-logo" style="width: 32px; height: 32px; border-radius: 9px; object-fit: cover;">
       CryptoShield
       <span class="ai-badge">AI-POWERED</span>
     </a>
@@ -1020,7 +1370,8 @@ footer {
     <h1>AI-Powered Crypto<br><em>Fraud Detection</em></h1>
     <p class="hero-desc">
       Advanced AI analysis for Ethereum & Bitcoin wallets. Detect dusting attacks,
-      identify scam patterns, and get intelligent fraud assessments powered by AI.
+      identify scam patterns, and get intelligent fraud assessments powered by 
+      <span class="hassan-signature">Groq AI Llama 3.3</span>.
     </p>
     <a href="#scanner" class="cta-btn">🤖 AI Analyze a Wallet</a>
   </div>
@@ -1044,7 +1395,7 @@ footer {
 <section class="section" id="scanner">
   <div class="sec-tag">AI Wallet Analysis</div>
   <h2 class="sec-h">Scan with AI Intelligence</h2>
-  <p class="sec-p">Enter any Ethereum or Bitcoin address for comprehensive AI-powered fraud detection.</p>
+  <p class="sec-p">Enter any Ethereum or Bitcoin address for comprehensive AI-powered fraud detection powered by <span class="hassan-signature">Groq's Llama 3.3 70B</span>.</p>
 
   <div class="scan-card">
     <div class="input-row">
@@ -1082,9 +1433,10 @@ footer {
         </div>
         <div class="gauge-wrap">
           <div class="gauge-ring">
-            <svg class="gauge-svg" width="110" height="110" viewBox="0 0 110 110">
-              <circle class="g-bg" cx="55" cy="55" r="46"/>
-              <circle class="g-fill" id="gFill" cx="55" cy="55" r="46" stroke-dasharray="289" stroke-dashoffset="289"/>
+            <svg class="gauge-svg" viewBox="0 0 120 120">
+              <circle class="g-bg" cx="60" cy="60" r="52"/>
+              <circle class="g-fill" id="gFill" cx="60" cy="60" r="52"
+                stroke-dasharray="326.5" stroke-dashoffset="326.5"/>
             </svg>
             <div class="gauge-inner">
               <div class="gauge-num" id="gNum">0</div>
@@ -1097,7 +1449,7 @@ footer {
 
       <div id="aiAnalysisBadge" style="display: none;" class="ai-analysis-badge">
         <span class="ai-badge-icon">🧠</span>
-        <span class="ai-badge-text">AI-Powered Analysis</span>
+        <span class="ai-badge-text">AI-Powered Analysis by Groq Llama 3.3</span>
       </div>
 
       <div id="fraudTypesContainer" style="display: none;">
@@ -1119,17 +1471,17 @@ footer {
       </div>
 
       <div class="patterns-box">
-        <div class="chart-lbl">🔍 Detected Patterns & Findings</div>
+        <div class="chart-lbl">🔍 AI Detected Patterns & Findings</div>
         <div id="patternsList"></div>
       </div>
 
       <div class="patterns-box">
-        <div class="chart-lbl">📋 Pattern Description</div>
+        <div class="chart-lbl">📋 AI Pattern Description</div>
         <div id="patternDescription" style="font-size: .82rem; color: var(--sub); line-height: 1.65;"></div>
       </div>
 
       <div class="advice-box" id="adviceBox">
-        <div class="adv-lbl">🛡️ Security Recommendation</div>
+        <div class="adv-lbl">🛡️ AI Security Recommendation</div>
         <div class="adv-text" id="adviceText"></div>
       </div>
     </div>
@@ -1139,7 +1491,7 @@ footer {
 <section class="section" id="agent">
   <div class="sec-tag">AI Assistant</div>
   <h2 class="sec-h">Chat with ShieldAI</h2>
-  <p class="sec-p">Ask questions about fraud patterns, wallet analysis, or get detailed explanations of scan results.</p>
+  <p class="sec-p">Ask questions about fraud patterns, wallet analysis, or get detailed explanations of scan results. Powered by <span class="hassan-signature">Groq's Llama 3.3 70B</span>.</p>
 
   <div class="agent-card">
     <div class="agent-head">
@@ -1148,7 +1500,7 @@ footer {
         <div class="agent-name">ShieldAI Assistant</div>
         <div class="agent-status">
           <span class="st-dot"></span>
-          Powered by AI
+          Powered by Groq Llama 3.3
         </div>
       </div>
     </div>
@@ -1157,14 +1509,16 @@ footer {
       <div class="msg ai">
         <div class="msg-ava ai">🧠</div>
         <div>
-          <div class="bubble">
-            Hello! I'm ShieldAI, your blockchain security assistant. I can help you understand wallet risks, explain fraud patterns, and analyze transaction data.
+          <div class="bubble" style="white-space: normal;">
+            Hello! I'm ShieldAI, your blockchain security assistant (built by Hassan) powered by Groq's Llama 3.3 AI. I can help you understand wallet risks, explain fraud patterns, and analyze transaction data.
 
 What would you like to know?
-- Ask about dusting attacks
-- Learn how to spot scam wallets
-- Get security recommendations
-- Analyze your latest scan results
+• Ask about dusting attacks
+• Learn how to spot scam wallets
+• Get security recommendations
+• Analyze your latest scan results
+
+<span style="font-size:0.7rem; opacity:0.7;">✨ Built by Hassan</span>
           </div>
           <div class="msg-ts">Just now</div>
         </div>
@@ -1187,9 +1541,12 @@ What would you like to know?
 
 <footer id="about">
   <strong>🛡️ CryptoShield AI — Blockchain Fraud Detection</strong><br>
-  AI-Powered Analysis · Etherscan API · Blockstream API<br>
-  Built with ❤️ · Educational purposes only<br>
+  AI-Powered Analysis · Etherscan API · Blockstream API · Groq Llama 3.3 70B<br>
+  Built with ❤️ by <span class="hassan-signature">Hassan</span> · Educational purposes only<br>
   Always verify independently before any transaction.
+  <div class="ai-credit">
+    🤖 AI analysis powered by Groq's ultra-fast Llama 3.3 70B model
+  </div>
 </footer>
 
 <script>
@@ -1293,8 +1650,10 @@ function renderResults(data) {
   const score = data.risk_score || 0;
   $('gNum').textContent = score;
   $('gFill').style.stroke = col;
+  
+  const circumference = 326.5;
   setTimeout(() => {
-    $('gFill').style.strokeDashoffset = 289 - (289 * score / 100);
+    $('gFill').style.strokeDashoffset = circumference - (circumference * score / 100);
   }, 80);
 
   if (data.is_ai_analysis) {
@@ -1381,10 +1740,10 @@ function renderResults(data) {
       return `<div class="p-item"><div class="p-pip ${pip}"></div><div class="p-text">${r}</div></div>`;
     }).join('');
   } else {
-    pl.innerHTML = '<div class="p-item"><div class="p-pip pip-info"></div><div class="p-text">No suspicious patterns detected.</div></div>';
+    pl.innerHTML = '<div class="p-item"><div class="p-pip pip-info"></div><div class="p-text">No suspicious patterns detected by AI analysis.</div></div>';
   }
 
-  $('patternDescription').innerHTML = data.pattern_description || 'Analyzing wallet transaction patterns...';
+  $('patternDescription').innerHTML = data.pattern_description || 'Analyzing wallet transaction patterns with Groq AI...';
   $('adviceBox').className = `advice-box ${cls}`;
   $('adviceText').textContent = data.recommendation || 'Exercise normal caution.';
 
@@ -1405,7 +1764,7 @@ function addMsg(role, text) {
   d.innerHTML = `
     <div class="msg-ava ${role === 'ai' ? 'ai' : 'user'}">${role === 'ai' ? '🧠' : '👤'}</div>
     <div>
-      <div class="bubble">${text.replace(/\n/g, '<br>').replace(/\*\*/g, '').replace(/\*/g, '')}</div>
+      <div class="bubble" style="white-space: normal;">${text.replace(/\n/g, '<br>').replace(/\*\*/g, '').replace(/\*/g, '')}</div>
       <div class="msg-ts">${ts()}</div>
     </div>`;
   chatWin.appendChild(d);
@@ -1459,7 +1818,7 @@ async function sendMsg() {
     } else if (data.error === 'RATE_LIMIT') {
       addMsg('ai', '⏳ Rate limit reached. Please wait a moment.');
     } else if (data.reply) {
-      addMsg('ai', data.reply);
+      addMsg('ai', data.reply + '\n\n✨ — ShieldAI');
     } else {
       addMsg('ai', 'Unable to generate response. Please try again.');
     }
