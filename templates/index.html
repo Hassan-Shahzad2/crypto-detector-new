@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-<title>CryptoShield AI — Blockchain Fraud Intelligence | Built by Hassan</title>
+<title>CryptoShield AI — Blockchain Fraud Intelligence</title>
 
 <!-- Favicon -->
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
@@ -66,6 +66,59 @@ body {
   line-height: 1.6;
   transition: background-color 0.3s ease;
   overflow-x: hidden;
+  position: relative;
+}
+
+/* ========== SUBTLE ANIMATED BACKGROUND ========== */
+.bg-aura {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.aura-particle {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.35;
+  animation: floatParticle 20s ease-in-out infinite;
+}
+
+@keyframes floatParticle {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.25; }
+  25% { transform: translate(5%, 3%) scale(1.05); opacity: 0.35; }
+  50% { transform: translate(-3%, 8%) scale(0.95); opacity: 0.2; }
+  75% { transform: translate(8%, -2%) scale(1.08); opacity: 0.3; }
+}
+
+.p1 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(34,211,238,0.3), transparent); top: -150px; right: -100px; animation-duration: 25s; }
+.p2 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(139,92,246,0.25), transparent); bottom: -100px; left: -80px; animation-duration: 30s; animation-delay: -5s; }
+.p3 { width: 300px; height: 300px; background: radial-gradient(circle, rgba(16,185,129,0.15), transparent); top: 40%; left: 20%; animation-duration: 22s; animation-delay: -10s; }
+.p4 { width: 350px; height: 350px; background: radial-gradient(circle, rgba(245,158,11,0.12), transparent); bottom: 20%; right: 15%; animation-duration: 28s; animation-delay: -3s; }
+
+[data-theme="dark"] .p1 { background: radial-gradient(circle, rgba(34,211,238,0.2), transparent); }
+[data-theme="dark"] .p2 { background: radial-gradient(circle, rgba(139,92,246,0.18), transparent); }
+[data-theme="dark"] .p3 { background: radial-gradient(circle, rgba(16,185,129,0.1), transparent); }
+[data-theme="dark"] .p4 { background: radial-gradient(circle, rgba(245,158,11,0.08), transparent); }
+
+/* Shimmer text effect */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer-text {
+  background: linear-gradient(90deg, var(--cyan) 0%, var(--violet) 50%, var(--cyan) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 3s linear infinite;
 }
 
 /* Neon Animations */
@@ -104,6 +157,39 @@ body {
   50% { border-color: rgba(34,211,238,0.8); }
 }
 
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(1.5); }
+}
+
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-5px); }
+}
+
+@keyframes modalSlideIn {
+  from { opacity: 0; transform: scale(0.95) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
 /* Apply animations */
 .scan-card, .agent-card, .risk-banner {
   animation: fadeInUp 0.6s ease-out;
@@ -118,15 +204,19 @@ body {
 .stat-box:nth-child(2) { animation-delay: 0.1s; }
 .stat-box:nth-child(3) { animation-delay: 0.15s; }
 .stat-box:nth-child(4) { animation-delay: 0.2s; }
+.stat-box:nth-child(5) { animation-delay: 0.25s; }
+.stat-box:nth-child(6) { animation-delay: 0.3s; }
+.stat-box:nth-child(7) { animation-delay: 0.35s; }
+.stat-box:nth-child(8) { animation-delay: 0.4s; }
 
 .chart-box:first-child { animation: slideInLeft 0.5s ease-out 0.1s both; }
 .chart-box:last-child { animation: slideInRight 0.5s ease-out 0.1s both; }
 
-.scan-btn, .cta-btn, .send-btn, .qbtn, .theme-toggle {
+.scan-btn, .cta-btn, .send-btn, .qbtn, .theme-toggle, .help-fab {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.scan-btn:hover, .cta-btn:hover, .send-btn:hover {
+.scan-btn:hover, .cta-btn:hover, .send-btn:hover, .help-fab:hover {
   animation: glowPulse 0.5s ease-in-out;
   transform: translateY(-2px);
 }
@@ -284,6 +374,7 @@ nav {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   transition: color 0.2s;
+  cursor: pointer;
 }
 
 .nav-links a:hover {
@@ -428,17 +519,199 @@ nav {
   font-size: 0.9rem;
   font-weight: 500;
   border-bottom: 1px solid var(--border2);
+  cursor: pointer;
 }
 
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
+/* Floating Help Button - Methodology */
+.help-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--violet), var(--cyan));
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  z-index: 100;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2), var(--neon-purple);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.help-fab:hover {
+  transform: scale(1.08) translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3), var(--neon-purple);
+}
+
+.help-fab:active {
+  transform: scale(0.96);
+}
+
+@media (min-width: 768px) {
+  .help-fab {
+    bottom: 32px;
+    right: 32px;
+    width: 60px;
+    height: 60px;
+    font-size: 28px;
   }
-  50% {
-    opacity: 0.3;
-    transform: scale(1.5);
-  }
+}
+
+/* MODAL STYLES - Methodology Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.modal-overlay.active {
+  display: flex;
+  opacity: 1;
+}
+
+.modal-container {
+  background: var(--s1);
+  border-radius: 28px;
+  max-width: 850px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+  animation: modalSlideIn 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(34,211,238,0.04));
+  border-radius: 28px 28px 0 0;
+}
+
+.modal-header h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--cyan), var(--violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-close {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 40px;
+  width: 32px;
+  height: 32px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  transition: all 0.2s;
+}
+
+.modal-close:hover {
+  background: var(--red);
+  color: white;
+  border-color: var(--red);
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.method-step {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 28px;
+  padding: 16px;
+  background: var(--s2);
+  border-radius: 20px;
+  border-left: 4px solid var(--cyan);
+}
+
+.method-icon {
+  font-size: 1.8rem;
+  min-width: 48px;
+  text-align: center;
+}
+
+.method-content h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.method-content p {
+  font-size: 0.8rem;
+  color: var(--sub);
+  line-height: 1.55;
+  margin-bottom: 6px;
+}
+
+.tech-badge {
+  display: inline-block;
+  background: rgba(34,211,238,0.1);
+  border-radius: 20px;
+  padding: 2px 10px;
+  font-size: 0.6rem;
+  font-family: monospace;
+  margin-top: 5px;
+  color: var(--cyan);
+}
+
+.risk-matrix {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 18px;
+  margin-bottom: 18px;
+}
+
+.matrix-item {
+  background: var(--bg);
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.matrix-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 12px;
+}
+
+@media (max-width: 550px) {
+  .modal-body { padding: 16px; }
+  .method-step { gap: 12px; padding: 12px; }
+  .risk-matrix { grid-template-columns: 1fr; }
 }
 
 /* Hero Section - Mobile First */
@@ -765,12 +1038,6 @@ h1 em {
   }
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 .load-title {
   font-size: 0.85rem;
   font-weight: 600;
@@ -793,23 +1060,9 @@ h1 em {
   animation: fadeIn 0.4s forwards;
 }
 
-.lstep:nth-child(1) {
-  animation-delay: 0.3s;
-}
-
-.lstep:nth-child(2) {
-  animation-delay: 1.2s;
-}
-
-.lstep:nth-child(3) {
-  animation-delay: 2.1s;
-}
-
-@keyframes fadeIn {
-  to {
-    opacity: 1;
-  }
-}
+.lstep:nth-child(1) { animation-delay: 0.3s; }
+.lstep:nth-child(2) { animation-delay: 1.2s; }
+.lstep:nth-child(3) { animation-delay: 2.1s; }
 
 /* Error */
 .err-box {
@@ -846,17 +1099,6 @@ h1 em {
 .results.on {
   display: block;
   animation: slideUp 0.4s ease;
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(15px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 /* Risk Banner */
@@ -932,25 +1174,11 @@ h1 em {
   }
 }
 
-.risk-banner.critical .rb-level {
-  color: #ef4444;
-}
-
-.risk-banner.high .rb-level {
-  color: #f59e0b;
-}
-
-.risk-banner.medium .rb-level {
-  color: #eab308;
-}
-
-.risk-banner.low .rb-level {
-  color: #06b6d4;
-}
-
-.risk-banner.safe .rb-level {
-  color: #10b981;
-}
+.risk-banner.critical .rb-level { color: #ef4444; }
+.risk-banner.high .rb-level { color: #f59e0b; }
+.risk-banner.medium .rb-level { color: #eab308; }
+.risk-banner.low .rb-level { color: #06b6d4; }
+.risk-banner.safe .rb-level { color: #10b981; }
 
 .rb-addr {
   font-family: 'JetBrains Mono', monospace;
@@ -1002,13 +1230,10 @@ h1 em {
   fill: none;
   stroke-width: 6;
   stroke-linecap: round;
-  transition: stroke-dashoffset 1s ease;
 }
 
 @media (min-width: 480px) {
-  .g-bg, .g-fill {
-    stroke-width: 7;
-  }
+  .g-bg, .g-fill { stroke-width: 7; }
 }
 
 .gauge-inner {
@@ -1041,12 +1266,8 @@ h1 em {
 }
 
 @media (min-width: 480px) {
-  .gauge-num {
-    font-size: 1.4rem;
-  }
-  .gauge-lbl {
-    font-size: 0.58rem;
-  }
+  .gauge-num { font-size: 1.4rem; }
+  .gauge-lbl { font-size: 0.58rem; }
 }
 
 /* Stats Grid */
@@ -1058,16 +1279,11 @@ h1 em {
 }
 
 @media (min-width: 640px) {
-  .stats-grid {
-    gap: 10px;
-    margin-bottom: 14px;
-  }
+  .stats-grid { gap: 10px; margin-bottom: 14px; }
 }
 
 @media (min-width: 768px) {
-  .stats-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
+  .stats-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
 .stat-box {
@@ -1078,10 +1294,7 @@ h1 em {
 }
 
 @media (min-width: 640px) {
-  .stat-box {
-    padding: 12px;
-    border-radius: 13px;
-  }
+  .stat-box { padding: 12px; border-radius: 13px; }
 }
 
 .stat-ico {
@@ -1105,18 +1318,9 @@ h1 em {
 }
 
 @media (min-width: 640px) {
-  .stat-ico {
-    font-size: 1rem;
-    margin-bottom: 6px;
-  }
-  .stat-lbl {
-    font-size: 0.58rem;
-    letter-spacing: 0.08em;
-    margin-bottom: 4px;
-  }
-  .stat-val {
-    font-size: 0.85rem;
-  }
+  .stat-ico { font-size: 1rem; margin-bottom: 6px; }
+  .stat-lbl { font-size: 0.58rem; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .stat-val { font-size: 0.85rem; }
 }
 
 /* AI Badge */
@@ -1193,18 +1397,9 @@ h1 em {
 }
 
 @media (min-width: 768px) {
-  .chart-box {
-    padding: 15px;
-    border-radius: 13px;
-  }
-  .chart-lbl {
-    font-size: 0.64rem;
-    letter-spacing: 0.09em;
-    margin-bottom: 14px;
-  }
-  .chart-area {
-    height: 188px;
-  }
+  .chart-box { padding: 15px; border-radius: 13px; }
+  .chart-lbl { font-size: 0.64rem; letter-spacing: 0.09em; margin-bottom: 14px; }
+  .chart-area { height: 188px; }
 }
 
 /* Patterns */
@@ -1234,20 +1429,9 @@ h1 em {
   margin-top: 5px;
 }
 
-.pip-crit {
-  background: var(--red);
-  box-shadow: 0 0 4px var(--red);
-}
-
-.pip-warn {
-  background: var(--amber);
-  box-shadow: 0 0 4px var(--amber);
-}
-
-.pip-info {
-  background: var(--cyan);
-  box-shadow: 0 0 4px var(--cyan);
-}
+.pip-crit { background: var(--red); box-shadow: 0 0 4px var(--red); }
+.pip-warn { background: var(--amber); box-shadow: 0 0 4px var(--amber); }
+.pip-info { background: var(--cyan); box-shadow: 0 0 4px var(--cyan); }
 
 .p-text {
   font-size: 0.7rem;
@@ -1256,9 +1440,7 @@ h1 em {
 }
 
 @media (min-width: 480px) {
-  .p-text {
-    font-size: 0.78rem;
-  }
+  .p-text { font-size: 0.78rem; }
 }
 
 /* Advice Box */
@@ -1268,30 +1450,11 @@ h1 em {
   border-left: 3px solid;
 }
 
-.advice-box.critical {
-  background: rgba(239, 68, 68, 0.06);
-  border-color: #ef4444;
-}
-
-.advice-box.high {
-  background: rgba(245, 158, 11, 0.06);
-  border-color: #f59e0b;
-}
-
-.advice-box.medium {
-  background: rgba(234, 179, 8, 0.06);
-  border-color: #eab308;
-}
-
-.advice-box.low {
-  background: rgba(6, 182, 212, 0.06);
-  border-color: #06b6d4;
-}
-
-.advice-box.safe {
-  background: rgba(16, 185, 129, 0.06);
-  border-color: #10b981;
-}
+.advice-box.critical { background: rgba(239, 68, 68, 0.06); border-color: #ef4444; }
+.advice-box.high { background: rgba(245, 158, 11, 0.06); border-color: #f59e0b; }
+.advice-box.medium { background: rgba(234, 179, 8, 0.06); border-color: #eab308; }
+.advice-box.low { background: rgba(6, 182, 212, 0.06); border-color: #06b6d4; }
+.advice-box.safe { background: rgba(16, 185, 129, 0.06); border-color: #10b981; }
 
 .adv-lbl {
   font-size: 0.55rem;
@@ -1382,17 +1545,6 @@ h1 em {
   animation: msgIn 0.28s ease;
 }
 
-@keyframes msgIn {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .msg.user {
   flex-direction: row-reverse;
 }
@@ -1463,22 +1615,8 @@ h1 em {
   animation: bounce 1.2s infinite;
 }
 
-.td:nth-child(2) {
-  animation-delay: 0.22s;
-}
-
-.td:nth-child(3) {
-  animation-delay: 0.44s;
-}
-
-@keyframes bounce {
-  0%, 60%, 100% {
-    transform: translateY(0);
-  }
-  30% {
-    transform: translateY(-5px);
-  }
-}
+.td:nth-child(2) { animation-delay: 0.22s; }
+.td:nth-child(3) { animation-delay: 0.44s; }
 
 /* Quick Questions */
 .qq-row {
@@ -1588,22 +1726,11 @@ h1 em {
   white-space: nowrap;
 }
 
-.tb-high {
-  background: rgba(239, 68, 68, 0.12);
-  color: #ef4444;
-}
+.tb-high { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+.tb-med { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+.tb-low { background: rgba(16, 185, 129, 0.12); color: #10b981; }
 
-.tb-med {
-  background: rgba(245, 158, 11, 0.12);
-  color: #f59e0b;
-}
-
-.tb-low {
-  background: rgba(16, 185, 129, 0.12);
-  color: #10b981;
-}
-
-/* Footer */
+/* Footer - Clean, no personal info */
 footer {
   border-top: 1px solid var(--border);
   padding: 24px 16px;
@@ -1612,7 +1739,7 @@ footer {
   font-size: 0.65rem;
 }
 
-/* Signature */
+/* Signature - subtle */
 .hassan-signature {
   display: inline-block;
   background: linear-gradient(135deg, var(--cyan), var(--violet));
@@ -1620,7 +1747,6 @@ footer {
   background-clip: text;
   color: transparent;
   font-weight: 700;
-  animation: glowPulse 2s ease-in-out infinite;
 }
 
 .ai-credit {
@@ -1650,6 +1776,14 @@ footer {
 </style>
 </head>
 <body>
+
+<!-- Subtle Animated Background -->
+<div class="bg-aura">
+  <div class="aura-particle p1"></div>
+  <div class="aura-particle p2"></div>
+  <div class="aura-particle p3"></div>
+  <div class="aura-particle p4"></div>
+</div>
 
 <div class="orb orb-1"></div>
 <div class="orb orb-2"></div>
@@ -1690,6 +1824,69 @@ footer {
   <a href="#about" onclick="closeMenu()">ℹ️ About</a>
 </div>
 
+<!-- Floating Methodology Button -->
+<button class="help-fab" id="helpFab" onclick="openMethodology()">📘</button>
+
+<!-- METHODOLOGY MODAL -->
+<div id="methodologyModal" class="modal-overlay">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3>🔬 How CryptoShield AI Detects Wallet Fraud</h3>
+      <button class="modal-close" onclick="closeMethodology()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="method-step">
+        <div class="method-icon">🧠</div>
+        <div class="method-content">
+          <h4>1. AI-Powered Analysis (Groq Llama 3.3 70B)</h4>
+          <p>After fetching raw transaction data, our system sends key metrics to Groq's ultra-fast Llama 3.3 70B model. The AI evaluates behavioral patterns, flags anomalies, and returns a comprehensive risk score (0–100) along with specific fraud classifications and actionable recommendations.</p>
+          <span class="tech-badge">Groq Cloud · Llama 3.3 70B · 0.1 Temperature</span>
+        </div>
+      </div>
+      <div class="method-step">
+        <div class="method-icon">📡</div>
+        <div class="method-content">
+          <h4>2. On-Chain Data Extraction</h4>
+          <p><strong>Ethereum:</strong> Etherscan API provides complete transaction history, balance, incoming/outgoing flows, and timestamps. <strong>Bitcoin:</strong> Blockstream API fetches UTXO data, transaction details, and address statistics. Both support caching for performance.</p>
+          <span class="tech-badge">Etherscan API + Blockstream API + Redis-style Cache</span>
+        </div>
+      </div>
+      <div class="method-step">
+        <div class="method-icon">⚠️</div>
+        <div class="method-content">
+          <h4>3. Multi-Layer Fraud Detection</h4>
+          <p><strong>Dusting Attacks:</strong> Identifies micro-transactions (&lt;0.0001 ETH / 0.00001 BTC) that could be address poisoning. <strong>Money Laundering:</strong> Flags high outgoing tx volume to unique addresses. <strong>Mixing Services:</strong> Detects low balance with high transaction volume. <strong>Pattern Recognition:</strong> Analyzes hourly activity, counterparty diversity, and transaction size distribution.</p>
+          <span class="tech-badge">Rule-Based Heuristics + Behavioral Analytics</span>
+        </div>
+      </div>
+      <div class="risk-matrix">
+        <div class="matrix-item"><div class="matrix-dot" style="background:#ef4444;"></div> <strong>CRITICAL (70-100)</strong> — Immediate threat, DO NOT interact</div>
+        <div class="matrix-item"><div class="matrix-dot" style="background:#f59e0b;"></div> <strong>HIGH (50-69)</strong> — Extreme caution, verify independently</div>
+        <div class="matrix-item"><div class="matrix-dot" style="background:#eab308;"></div> <strong>MEDIUM (25-49)</strong> — Suspicious patterns detected</div>
+        <div class="matrix-item"><div class="matrix-dot" style="background:#06b6d4;"></div> <strong>LOW (10-24)</strong> — Minor anomalies, standard security</div>
+        <div class="matrix-item"><div class="matrix-dot" style="background:#10b981;"></div> <strong>VERY LOW (0-9)</strong> — Normal activity patterns</div>
+      </div>
+      <div class="method-step">
+        <div class="method-icon">📊</div>
+        <div class="method-content">
+          <h4>4. Real-Time Visualization & Security Recommendations</h4>
+          <p>Interactive dashboard displays: Risk gauge with color-coded severity, transaction distribution charts (normal/micro/large), hourly activity patterns, fraud type tags, and personalized security advice based on detected patterns.</p>
+          <span class="tech-badge">Chart.js · Responsive Design · Dark/Light Mode</span>
+        </div>
+      </div>
+      <div class="method-step">
+        <div class="method-icon">🤖</div>
+        <div class="method-content">
+          <h4>5. ShieldAI Assistant Integration</h4>
+          <p>Context-aware AI chatbot can explain scan results, answer fraud-related questions, and provide educational content about blockchain security. The assistant remembers the last scanned wallet for deeper analysis.</p>
+          <span class="tech-badge">Session Memory · Context Injection · Groq Streaming</span>
+        </div>
+      </div>
+      <p style="font-size:0.7rem; color:var(--muted); margin-top: 12px; text-align: center;">🔒 No personal data stored · Works with Ethereum & Bitcoin · Rate-limited for stability</p>
+    </div>
+  </div>
+</div>
+
 <section class="hero">
   <div class="hero-left">
     <div class="eyebrow">
@@ -1710,12 +1907,12 @@ footer {
         <span class="tc-title">AI Detection Capabilities</span>
       </div>
       <div style="padding: 8px 0;">
-        <div class="tick-row">🔍 Dusting Attacks</div>
-        <div class="tick-row">💰 Money Laundering</div>
-        <div class="tick-row">🎭 Address Poisoning</div>
-        <div class="tick-row">🔄 Mixing Services</div>
-        <div class="tick-row">🏦 Exchange Drainers</div>
-        <div class="tick-row">📊 Pattern Analysis</div>
+        <div class="tick-row">🔍 Dusting Attacks & Address Poisoning</div>
+        <div class="tick-row">💰 Money Laundering Patterns</div>
+        <div class="tick-row">🎭 Mixing Service Usage</div>
+        <div class="tick-row">🔄 High-Volume Outgoing Transactions</div>
+        <div class="tick-row">🏦 Exchange Drainer Detection</div>
+        <div class="tick-row">📊 Behavioral Anomaly Scoring</div>
       </div>
     </div>
   </div>
@@ -1742,9 +1939,9 @@ footer {
       <div class="spin"></div>
       <div class="load-title">🤖 AI Analyzing Blockchain Data...</div>
       <div class="load-steps">
-        <div class="lstep">▶ Fetching transaction history</div>
-        <div class="lstep">▶ Running AI pattern recognition</div>
-        <div class="lstep">▶ Generating fraud assessment</div>
+        <div class="lstep">▶ Fetching transaction history from blockchain</div>
+        <div class="lstep">▶ Running AI pattern recognition (Groq Llama 3.3)</div>
+        <div class="lstep">▶ Generating comprehensive fraud assessment</div>
       </div>
     </div>
 
@@ -1778,7 +1975,7 @@ footer {
 
       <div id="aiAnalysisBadge" style="display: none;" class="ai-analysis-badge">
         <span class="ai-badge-icon">🧠</span>
-        <span class="ai-badge-text">AI-Powered Analysis by Groq Llama 3.3</span>
+        <span class="ai-badge-text">AI-Powered Analysis by Groq Llama 3.3 70B</span>
       </div>
 
       <div id="fraudTypesContainer" style="display: none;">
@@ -1829,7 +2026,7 @@ footer {
         <div class="agent-name">ShieldAI Assistant</div>
         <div class="agent-status">
           <span class="st-dot"></span>
-          Powered by Groq Llama 3.3
+          Powered by Groq Llama 3.3 70B
         </div>
       </div>
     </div>
@@ -1839,15 +2036,16 @@ footer {
         <div class="msg-ava ai">🧠</div>
         <div>
           <div class="bubble" style="white-space: normal;">
-            Hello! I'm ShieldAI, your blockchain security assistant (built by Hassan) powered by Groq's Llama 3.3 AI. I can help you understand wallet risks, explain fraud patterns, and analyze transaction data.
+            Hello! I'm ShieldAI, your blockchain security assistant powered by Groq's Llama 3.3 AI. I can help you understand wallet risks, explain fraud patterns, and analyze transaction data.
 
 What would you like to know?
+• How does the AI detect fraud? (Click the floating 📘 button!)
 • Ask about dusting attacks
 • Learn how to spot scam wallets
 • Get security recommendations
 • Analyze your latest scan results
 
-<span style="font-size:0.7rem; opacity:0.7;">✨ Built by Hassan</span>
+<span style="font-size:0.7rem; opacity:0.7;">✨ Click the floating book icon to learn how fraud detection works</span>
           </div>
           <div class="msg-ts">Just now</div>
         </div>
@@ -1858,23 +2056,23 @@ What would you like to know?
       <button class="qq" onclick="askQ('What is a dusting attack and how does it work?')">What is dusting?</button>
       <button class="qq" onclick="askQ('How can I protect myself from crypto scams?')">Scam protection</button>
       <button class="qq" onclick="askQ('What patterns make a wallet high risk?')">Risk patterns</button>
+      <button class="qq" onclick="askQ('How does the AI fraud detection work?')">How it works</button>
       <button class="qq" onclick="askQ('Analyze the last wallet scan results')">Analyze scan</button>
     </div>
 
     <div class="agent-inp-row">
-      <input class="agent-inp" id="agentInp" placeholder="Ask about fraud detection, wallet analysis, blockchain security..." onkeypress="if(event.key==='Enter') sendMsg()">
+      <input class="agent-inp" id="agentInp" placeholder="Ask about fraud detection, wallet analysis, methodology..." onkeypress="if(event.key==='Enter') sendMsg()">
       <button class="send-btn" id="sendBtn" onclick="sendMsg()">➤</button>
     </div>
   </div>
 </section>
 
 <footer id="about">
-  <strong>🛡️ CryptoShield AI — Blockchain Fraud Detection</strong><br>
+  <strong>🛡️ CryptoShield AI — Blockchain Fraud Detection System</strong><br>
   AI-Powered Analysis · Etherscan API · Blockstream API · Groq Llama 3.3 70B<br>
-  Built with ❤️ by <span class="hassan-signature">Hassan</span> · Educational purposes only<br>
-  Always verify independently before any transaction.
+  Built with ❤️ · Educational purposes only
   <div class="ai-credit">
-    🤖 AI analysis powered by Groq's ultra-fast Llama 3.3 70B model
+    🤖 AI analysis powered by Groq's ultra-fast Llama 3.3 70B model | Real-time fraud detection
   </div>
 </footer>
 
@@ -1910,6 +2108,18 @@ function toggleMenu() {
 function closeMenu() {
   document.getElementById('mobileMenu').classList.remove('open');
   document.getElementById('menuBtn').classList.remove('active');
+}
+
+function openMethodology() {
+  const modal = document.getElementById('methodologyModal');
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeMethodology() {
+  const modal = document.getElementById('methodologyModal');
+  modal.classList.remove('active');
+  document.body.style.overflow = '';
 }
 
 const $ = id => document.getElementById(id);

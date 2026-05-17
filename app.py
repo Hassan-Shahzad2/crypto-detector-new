@@ -870,11 +870,7 @@ if __name__ == '__main__':
     print("🛡️  CryptoShield AI — Blockchain Fraud Detection System")
     print("=" * 70)
     print("\n👨‍💻 CREATOR: Muhammad Hassan Shahzad")
-    print(f"   • Age: {CREATOR_INFO['age']} years")
-    print(f"   • University: {CREATOR_INFO['university']}")
-    print(f"   • CGPA: {CREATOR_INFO['cgpa']}")
-    print(f"   • Degree: {CREATOR_INFO['degree']}")
-    
+
     eth_key = os.environ.get('ETHERSCAN_API_KEY', '').strip()
     groq_key = os.environ.get('GROQ_API_KEY', '').strip()
     
@@ -892,9 +888,6 @@ if __name__ == '__main__':
     print("   • Wallet scan history")
     print("   • AI chatbot assistant")
     print("   • Rate limiting protection")
-    print("   • Creator info (only when asked)")
     
     print("\n" + "=" * 70)
-    print("✨ System ready! The AI will ONLY mention you when specifically asked 'Who built you?'\n")
-    
     app.run(host='0.0.0.0', port=port, debug=True)
