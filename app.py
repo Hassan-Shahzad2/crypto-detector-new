@@ -23,25 +23,23 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
 
-# Creator Information
+# Creator Information - ONLY used when specifically asked
 CREATOR_INFO = {
     'name': 'Muhammad Hassan Shahzad',
     'age': 22,
     'university': 'Iqra University',
     'cgpa': 3.72,
     'degree': 'BS Computer Science',
-    'favourite food': 'Biryani',
-    'girlfriend':'Lol, thats a secret',
-    'skills': ['Python', 'Flask', 'Blockchain', 'Web Development', 'Networking' , 'Data Analysis'],
-    'interests': ['Blockchain Security', 'AI Fraud Detection', 'Cryptocurrency Forensics', 'Cybersecurity', 'Machine Learning' , 'Data Sciences'],
-    'bio': 'A passionate 22-year-old computer science student at Iqra University with a strong focus on blockchain security and AI-powered fraud detection systems. Currently maintaining a 3.72 CGPA while building innovative security solutions.',
+    'favourite_food': 'Biryani',
+    'relationship': 'Secret 😉',
+    'skills': ['Python', 'Flask', 'Blockchain', 'Web Development', 'Networking', 'Data Analysis'],
+    'interests': ['Blockchain Security', 'Cryptocurrency Forensics', 'Cybersecurity', 'Web Development'],
+    'bio': 'A passionate 22-year-old computer science student at Iqra University with a strong focus on blockchain security. Currently maintaining a 3.72 CGPA while building innovative security solutions.',
     'achievements': [
-        'Built CryptoShield AI - an advanced blockchain fraud detection system',
+        'Built CryptoShield AI - a blockchain fraud detection system',
         'Specialized in Ethereum and Bitcoin transaction analysis',
-        'Expert in identifying dusting attacks and money laundering patterns',
-        'Developed AI-powered wallet risk assessment algorithms'
+        'Knowledgeable in identifying dusting attacks and money laundering patterns'
     ],
-
     'email': 'mhsmk589@gmail.com',
     'location': 'Karachi, Pakistan'
 }
@@ -209,7 +207,7 @@ def _process_ethereum_transactions(txs: List[Dict], wallet_address: str) -> Dict
                 large_tx_count += 1
             if value > max_amount:
                 max_amount = value
-        except Exception as e:
+        except Exception:
             continue
     
     days_inactive = 999
@@ -351,7 +349,7 @@ def _process_bitcoin_transactions(txs: List[Dict], address_data: Dict, wallet_ad
                     large_tx_count += 1
                 if abs_value > max_amount:
                     max_amount = abs_value
-        except Exception as e:
+        except Exception:
             continue
     
     days_inactive = 999
@@ -428,7 +426,7 @@ METRICS:
 - Days inactive: {wallet_data.get('last_active_days', 999)}
 - Recent activity: {wallet_data.get('recent_activity', False)}
 
-Respond in JSON only:
+Respond in JSON only. Do not add any extra text outside the JSON. Do not mention creators or personal info:
 {{
     "risk_score": 0-100,
     "fraud_types": [],
@@ -446,7 +444,7 @@ def _call_groq_api(prompt: str, api_key: str) -> Optional[str]:
     payload = {
         "model": "llama-3.3-70b-versatile",
         "messages": [
-            {"role": "system", "content": "You are a blockchain forensic expert. Respond only in valid JSON format. Do not use markdown formatting like **bold** or *italic*. Use plain text only."},
+            {"role": "system", "content": "You are a blockchain forensic expert. Respond only in valid JSON format. Never mention creators or personal information. Focus only on wallet security analysis."},
             {"role": "user", "content": prompt}
         ],
         "temperature": 0.1,
@@ -553,25 +551,25 @@ def _rule_based_fraud_detection(wallet_data: Dict) -> Dict:
 
 def _get_recommendation(risk_score: int) -> str:
     if risk_score >= 70:
-        return "🚨 CRITICAL: DO NOT interact with this wallet. High probability of fraudulent activity. Report immediately to blockchain security platforms."
+        return "🚨 CRITICAL: DO NOT interact with this wallet. High probability of fraudulent activity."
     elif risk_score >= 50:
-        return "⚠️ HIGH RISK: Exercise extreme caution. Verify all information independently before any transaction. Consider using escrow services."
+        return "⚠️ HIGH RISK: Exercise extreme caution. Verify all information independently."
     elif risk_score >= 25:
-        return "⚡ MEDIUM RISK: Some concerning patterns detected. Verify addresses carefully and start with small test transactions."
+        return "⚡ MEDIUM RISK: Some concerning patterns detected. Verify addresses carefully."
     elif risk_score >= 10:
         return "📊 LOW RISK: Minor concerns detected. Use standard security practices."
-    return "✅ SAFE: Normal activity detected. Continue practicing good security hygiene."
+    return "✅ SAFE: Normal activity detected. Continue practicing good security."
 
 def _get_pattern_description(risk_score: int, fraud_types: List[str]) -> str:
     if risk_score >= 70:
-        return f"This wallet exhibits critical risk patterns including {', '.join(fraud_types[:3])}. Immediate action advised."
+        return f"Critical risk patterns detected: {', '.join(fraud_types[:3])}. Immediate action advised."
     elif risk_score >= 50:
-        return f"High-risk transaction patterns detected: {', '.join(fraud_types[:2])}. Further investigation strongly recommended."
+        return f"High-risk patterns detected: {', '.join(fraud_types[:2])}. Further investigation recommended."
     elif risk_score >= 25:
-        return "Unusual transaction patterns detected. Standard security precautions recommended."
+        return "Unusual transaction patterns detected. Standard precautions recommended."
     elif risk_score >= 10:
-        return "Minor anomalies detected in transaction history. Normal security practices sufficient."
-    return "Transaction patterns appear normal with no significant red flags."
+        return "Minor anomalies detected in transaction history."
+    return "Transaction patterns appear normal."
 
 # ─── WALLET HISTORY ───────────────────────────────────────────────────────────
 
@@ -612,7 +610,6 @@ def home():
 
 @app.route('/creator', methods=['GET'])
 def creator_info():
-    """Get information about the creator Muhammad Hassan Shahzad"""
     return jsonify(CREATOR_INFO)
 
 @app.route('/check_wallet', methods=['POST'])
@@ -698,35 +695,35 @@ def agent():
         if not user_message:
             return jsonify({'error': 'Empty message'}), 400
 
-        # Check if user is asking about the creator
+        # ONLY respond with creator info when SPECIFICALLY asked
         creator_keywords = ['who built you', 'who created you', 'who made you', 'your creator', 'about the creator', 
                            'tell me about the creator', 'who is the developer', 'who developed you', 'hassan', 
-                           'muhammad hassan', 'creator of this tool', 'who programmed you', 'author of cryptoshield']
+                           'muhammad hassan', 'creator of this tool', 'who programmed you', 'author of cryptoshield',
+                           'tell me about hassan', 'about hassan', 'who is hassan']
         
-        if any(keyword in user_message for keyword in creator_keywords):
+        is_creator_question = any(keyword in user_message for keyword in creator_keywords)
+        
+        if is_creator_question:
             creator = CREATOR_INFO
             reply = f"""🌟 About My Creator - Muhammad Hassan Shahzad 🌟
 
-Muhammad Hassan Shahzad is a {creator['age']}-year-old passionate Computer Science student at {creator['university']}, maintaining an impressive {creator['cgpa']} CGPA.
+{creator['name']} is a {creator['age']}-year-old Computer Science student at {creator['university']}, maintaining a {creator['cgpa']} CGPA.
 
 📚 Education: {creator['degree']} at {creator['university']}
-💻 Skills: {', '.join(creator['skills'][:6])}
-🎯 Interests: {', '.join(creator['interests'])}
+💻 Skills: {', '.join(creator['skills'][:5])}
+🎯 Interests: {', '.join(creator['interests'][:4])}
 📍 Location: {creator['location']}
+🍽️ Favourite Food: {creator['favourite_food']}
 
-🏆 Key Achievements:
-- Built CryptoShield AI - Advanced blockchain fraud detection system
-- Specialized in Ethereum and Bitcoin transaction analysis
-- Expert in identifying dusting attacks and money laundering patterns
+🏆 Key Achievement:
+• Built CryptoShield AI - a blockchain fraud detection system
 
-✨ He built me with a vision to make blockchain security accessible to everyone, using cutting-edge AI technology to detect crypto fraud in real-time.
+He built me to help people identify crypto scams and protect their assets.
 
-💡 Fun fact: He maintains a 3.72 CGPA while building innovative security solutions like me!
-
-Feel free to ask me more about Hassan's work or anything about crypto security! 🛡️"""
+Feel free to ask me about crypto security or wallet analysis! 🛡️"""
             return jsonify({'reply': reply})
 
-        # Handle wallet scan analysis requests
+        # Handle wallet scan analysis requests (no creator mention)
         analyze_keywords = ['analyze the last wallet', 'explain the scan', 'what does the scan show', 
                            'interpret the results', 'scan analysis', 'wallet analysis']
         
@@ -737,54 +734,40 @@ Based on the scan data:
 {context}
 
 Key Findings:
-- Risk Level: The wallet shows specific patterns that require attention
-- Transaction History: Analyzed for suspicious activity
-- Fraud Indicators: Checked against known scam patterns
+• Risk Level assessed through pattern recognition
+• Transaction History analyzed for suspicious activity
+• Fraud Indicators checked against known scam patterns
 
-Recommendations:
-- Always verify addresses before sending transactions
-- Use hardware wallets for large amounts
-- Enable 2FA on all exchange accounts
-- Never share private keys or seed phrases
+Security Recommendations:
+• Always verify addresses before sending transactions
+• Use hardware wallets for large amounts
+• Enable 2FA on all exchange accounts
+• Never share private keys or seed phrases
 
-For specific details about this wallet's risk score and fraud types, please check the scan results above.
-
-Need more clarification? Ask me specific questions about the findings! 🛡️"""
+Need more details? Ask me specific questions about the findings! 🛡️"""
             return jsonify({'reply': reply})
 
         if len(context) > 2000:
             context = context[:2000] + "..."
         
-        system_prompt = f"""You are ShieldAI, a blockchain security expert created by Muhammad Hassan Shahzad (22-year-old CS student at Iqra University, 3.72 CGPA).
+        # System prompt - NO creator info unless specifically asked in the question
+        system_prompt = f"""You are ShieldAI, a helpful blockchain security assistant.
 
-Important formatting rules:
-- NEVER use markdown like **bold** or *italic*
-- Use plain text only with line breaks
-- Use emojis for emphasis instead of markdown
-- Keep responses concise and clear
-
-Your role:
-- Analyze wallet addresses for fraud patterns
-- Explain crypto scams clearly
-- Provide security recommendations
-- When asked, proudly share that you were built by Muhammad Hassan Shahzad
-
-Creator Info (Muhammad Hassan Shahzad):
-- Age: 22 years old
-- University: Iqra University (BS Computer Science)
-- CGPA: 3.72
-- Skills: Python, Flask, Blockchain, AI/ML, Web Development, Smart Contract Security
-- Passion: Blockchain security and AI-powered fraud detection
-- Favourite Food: Biryani
-- Girlfriend: Lol, that is a secret
-
-Guidelines:
-- Be concise (150-300 words)
-- Use bullet points with dashes (-)
+IMPORTANT RULES:
+- NEVER mention who built you or any creator information unless the user specifically asks "who built you" or similar questions
+- Do NOT add any promotional text about yourself
+- Focus ONLY on answering the user's question about crypto security
+- Keep responses concise (100-200 words)
+- Use plain text, no markdown formatting
+- Use bullet points with dashes (-) when listing items
 - Never give financial advice
-- Reference scan data if provided
+- Be helpful and friendly
+- If asked for creator's girlfriend say its a secret
+- Creators Favourite food is biryani
+- Creators Cgpa is 3.72
+- Anand is creators one of best friend (only mention when asked)
 
-{context if context else 'No recent scan context. Be helpful and friendly.'}"""
+{context if context else 'No recent scan context. Help users with crypto security questions.'}"""
         
         url = "https://api.groq.com/openai/v1/chat/completions"
         headers = {
@@ -797,7 +780,7 @@ Guidelines:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message}
             ],
-            "max_tokens": 800,
+            "max_tokens": 600,
             "temperature": 0.7
         }
 
@@ -806,11 +789,9 @@ Guidelines:
         if res.status_code == 200:
             result = res.json()
             reply = result['choices'][0]['message']['content'].strip()
-            # Remove any remaining markdown bold/italic markers
+            # Remove any markdown formatting
             reply = re.sub(r'\*\*([^*]+)\*\*', r'\1', reply)
             reply = re.sub(r'\*([^*]+)\*', r'\1', reply)
-            reply = re.sub(r'__([^_]+)__', r'\1', reply)
-            reply = re.sub(r'_([^_]+)_', r'\1', reply)
             return jsonify({'reply': reply})
         elif res.status_code == 401:
             return jsonify({'error': 'INVALID_KEY'}), 401
@@ -911,9 +892,9 @@ if __name__ == '__main__':
     print("   • Wallet scan history")
     print("   • AI chatbot assistant")
     print("   • Rate limiting protection")
-    print("   • Creator info integration")
+    print("   • Creator info (only when asked)")
     
     print("\n" + "=" * 70)
-    print("✨ System ready! Ask me 'Who built you?' to learn about my creator!\n")
+    print("✨ System ready! The AI will ONLY mention you when specifically asked 'Who built you?'\n")
     
     app.run(host='0.0.0.0', port=port, debug=True)
